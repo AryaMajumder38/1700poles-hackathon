@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Lock } from "lucide-react";
+import { useRbacSession } from "@/features/planner/rbacBridge";
 import type {
   ActiveGodown,
   MetadataPayload,
@@ -31,6 +32,7 @@ function pickDefaultCell(
 }
 
 export default function SetsView() {
+  const { session } = useRbacSession();
   const [metadata, setMetadata] = useState<MetadataPayload | null>(null);
   const [allRows, setAllRows] = useState<SetImbalanceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,21 +99,59 @@ export default function SetsView() {
     };
   }, []);
 
-  const rowsForMode = useMemo(
-    () => allRows.filter((r) => r.ratio_mode === ratioMode),
-    [allRows, ratioMode]
-  );
+  const lockedGodown: ActiveGodown | null = useMemo(() => {
+    if (session.roleType !== "SITE_MANAGER" || !session.warehouseName) {
+      return null;
+    }
+    const validGodowns = metadata?.godowns ?? [];
+    if (
+      validGodowns.length > 0 &&
+      !validGodowns.includes(session.warehouseName as ActiveGodown)
+    ) {
+      return null;
+    }
+    return session.warehouseName as ActiveGodown;
+  }, [session.roleType, session.warehouseName, metadata]);
+
+  const visibleGodowns: ActiveGodown[] = useMemo(() => {
+    if (!metadata) return [];
+    return lockedGodown ? [lockedGodown] : metadata.godowns;
+  }, [metadata, lockedGodown]);
+
+  const rowsForMode = useMemo(() => {
+    return allRows.filter((r) => {
+      if (r.ratio_mode !== ratioMode) return false;
+      if (lockedGodown && r.godown !== lockedGodown) return false;
+      return true;
+    });
+  }, [allRows, ratioMode, lockedGodown]);
+
+  const effectiveGodown: ActiveGodown = lockedGodown ?? selectedGodown;
 
   const selectedRow = useMemo(() => {
-    return (
-      rowsForMode.find(
-        (r) =>
-          r.set_no === selectedSetNo &&
-          r.godown === selectedGodown &&
-          r.month === selectedMonth
-      ) ?? null
+    const exact = rowsForMode.find(
+      (r) =>
+        r.set_no === selectedSetNo &&
+        r.godown === effectiveGodown &&
+        r.month === selectedMonth
     );
-  }, [rowsForMode, selectedSetNo, selectedGodown, selectedMonth]);
+    if (exact) return exact;
+    const fallbackCell = pickDefaultCell(rowsForMode, selectedSetNo);
+    if (fallbackCell) {
+      return (
+        rowsForMode.find(
+          (r) =>
+            r.set_no === selectedSetNo &&
+            r.godown === fallbackCell.godown &&
+            r.month === fallbackCell.month
+        ) ?? null
+      );
+    }
+    return null;
+  }, [rowsForMode, selectedSetNo, effectiveGodown, selectedMonth]);
+
+  const activeGodown: ActiveGodown = selectedRow?.godown ?? effectiveGodown;
+  const activeMonth: string = selectedRow?.month ?? selectedMonth;
 
   function handleSelectSet(nextSetNo: string) {
     setSelectedSetNo(nextSetNo);
@@ -123,7 +163,7 @@ export default function SetsView() {
   }
 
   function handleSelectCell(godown: ActiveGodown, month: string) {
-    setSelectedGodown(godown);
+    setSelectedGodown(lockedGodown ?? godown);
     setSelectedMonth(month);
   }
 
@@ -133,7 +173,7 @@ export default function SetsView() {
     month: string
   ) {
     setSelectedSetNo(setNo);
-    setSelectedGodown(godown);
+    setSelectedGodown(lockedGodown ?? godown);
     setSelectedMonth(month);
   }
 
@@ -160,6 +200,24 @@ export default function SetsView() {
 
   return (
     <div className="space-y-6">
+      {/* RBAC Site-Scoped Indicator */}
+      {lockedGodown && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-950">
+          <div className="flex items-center gap-2 font-semibold">
+            <Lock className="h-3.5 w-3.5 text-amber-700" />
+            <span>Site Scoped: {lockedGodown}</span>
+            <span className="font-normal text-amber-800">
+              ({session.staffName} • {session.staffTitle})
+            </span>
+          </div>
+          <span className="text-[11px] text-amber-800">
+            Showing kit imbalance heatmap &amp; bottleneck alerts strictly for{" "}
+            <strong>{lockedGodown}</strong>. Switch to Head Admin in the top
+            navbar for all 6 godowns.
+          </span>
+        </div>
+      )}
+
       {/* 1. Ratio Mode Toggle Banner + BOM vs Empirical Data Discovery */}
       <RatioModeBanner
         ratioMode={ratioMode}
@@ -171,13 +229,13 @@ export default function SetsView() {
       {/* 2. Set × Godown × Month Imbalance Heatmap */}
       <ImbalanceHeatmap
         sets={metadata.sets}
-        godowns={metadata.godowns}
+        godowns={visibleGodowns}
         months={metadata.date_range.months}
         rowsForMode={rowsForMode}
         selectedSetNo={selectedSetNo}
         onSelectSet={handleSelectSet}
-        selectedGodown={selectedGodown}
-        selectedMonth={selectedMonth}
+        selectedGodown={activeGodown}
+        selectedMonth={activeMonth}
         onSelectCell={handleSelectCell}
       />
 

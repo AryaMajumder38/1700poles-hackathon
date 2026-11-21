@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, AlertTriangle, Layers, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, AlertTriangle, Layers, Loader2, Lock } from "lucide-react";
+import { useRbacSession } from "@/features/planner/rbacBridge";
 import type {
   ActiveGodown,
   ContractorStockRow,
@@ -26,10 +27,35 @@ export default function LedgerView() {
   const [error, setError] = useState<string | null>(null);
 
   // Filters
+  const { session } = useRbacSession();
   const [selectedItemCode, setSelectedItemCode] = useState<string>(FLAGSHIP_ITEM_CODE);
   const [selectedGodown, setSelectedGodown] = useState<string>("ALL");
   const [startMonth, setStartMonth] = useState<string>("2023-03");
   const [endMonth, setEndMonth] = useState<string>("2026-10");
+
+  const lockedGodown: ActiveGodown | null = useMemo(() => {
+    if (session.roleType !== "SITE_MANAGER" || !session.warehouseName) {
+      return null;
+    }
+    const validGodowns = metadata?.godowns ?? [];
+    if (
+      validGodowns.length > 0 &&
+      !validGodowns.includes(session.warehouseName as ActiveGodown)
+    ) {
+      return null;
+    }
+    return session.warehouseName as ActiveGodown;
+  }, [session.roleType, session.warehouseName, metadata]);
+
+  const prevLockedRef = useRef<ActiveGodown | null>(null);
+  useEffect(() => {
+    if (prevLockedRef.current && !lockedGodown) {
+      setSelectedGodown("ALL");
+    }
+    prevLockedRef.current = lockedGodown;
+  }, [lockedGodown]);
+
+  const effectiveGodown: string = lockedGodown ?? selectedGodown;
 
   // Fetch all pre-aggregated data
   useEffect(() => {
@@ -105,10 +131,10 @@ export default function LedgerView() {
     return ledgerRows.filter((r) => {
       if (r.item_code !== selectedItemCode) return false;
       if (r.month < startMonth || r.month > endMonth) return false;
-      if (selectedGodown !== "ALL" && r.godown !== selectedGodown) return false;
+      if (effectiveGodown !== "ALL" && r.godown !== effectiveGodown) return false;
       return true;
     });
-  }, [ledgerRows, selectedItemCode, startMonth, endMonth, selectedGodown]);
+  }, [ledgerRows, selectedItemCode, startMonth, endMonth, effectiveGodown]);
 
   // Aggregated monthly chart points for GodownFlowChart
   const godownChartData = useMemo(() => {
@@ -271,13 +297,19 @@ export default function LedgerView() {
               <Layers className="h-5 w-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
                   Track B — Job 1: &ldquo;See It&rdquo;
                 </span>
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 font-mono">
-                  16 SKUs • 6 Godowns • 44 Months
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 font-mono">
+                  16 SKUs • {lockedGodown ? "1 Godown" : "6 Godowns"} • 44 Months
                 </span>
+                {lockedGodown && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                    <Lock className="h-3 w-3" />
+                    Site Scoped: {lockedGodown}
+                  </span>
+                )}
               </div>
               <h2 className="mt-1.5 text-lg font-bold text-slate-900">
                 Inventory Ledger &amp; Contractor Material Flow Explorer
@@ -297,8 +329,9 @@ export default function LedgerView() {
         selectedItemCode={selectedItemCode}
         onSelectItemCode={setSelectedItemCode}
         godowns={metadata.godowns}
-        selectedGodown={selectedGodown}
+        selectedGodown={effectiveGodown}
         onSelectGodown={setSelectedGodown}
+        lockedGodown={lockedGodown}
         months={monthsList}
         startMonth={startMonth}
         endMonth={endMonth}
@@ -311,7 +344,7 @@ export default function LedgerView() {
       <KpiSummaryStrip
         unit={unit}
         itemCode={selectedItemCode}
-        godownName={selectedGodown}
+        godownName={effectiveGodown}
         totalReceipts={kpis.totalReceipts}
         totalIssues={kpis.totalIssues}
         totalReturns={kpis.totalReturns}
@@ -330,7 +363,7 @@ export default function LedgerView() {
         <GodownFlowChart
           data={godownChartData}
           unit={unit}
-          godownName={selectedGodown}
+          godownName={effectiveGodown}
           itemName={itemName}
         />
 
@@ -349,7 +382,7 @@ export default function LedgerView() {
         unit={unit}
         itemCode={selectedItemCode}
         itemName={itemName}
-        godownName={selectedGodown}
+        godownName={effectiveGodown}
       />
 
       {/* Domain Knowledge & Audit Footnote for Judges */}

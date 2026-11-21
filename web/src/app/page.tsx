@@ -4,17 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  CalendarRange,
   Compass,
   GitCompareArrows,
   Layers,
   Warehouse,
   Zap,
 } from "lucide-react";
+import OpsCopilotDrawer from "@/features/copilot/OpsCopilotDrawer";
 import LedgerView from "@/features/ledger";
 import PlannerView from "@/features/planner";
+import NavbarProfileDropdown from "@/features/planner/NavbarProfileDropdown";
 import SetsView from "@/features/sets";
-import OpsCopilotDrawer from "@/features/copilot/OpsCopilotDrawer";
 import type {
   ContractorStockRow,
   MetadataPayload,
@@ -162,51 +162,62 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Industrial Control-Room Header */}
-      <header className="border-b border-slate-800 bg-slate-950 text-slate-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500 text-slate-950 shadow-sm">
-                <Zap className="h-5 w-5" />
+      {/* Global Control-Room Top Navbar */}
+      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 text-slate-50 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Left: Brand Mark */}
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 shadow-sm">
+                <Zap className="h-4.5 w-4.5" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                    Lumino Industries • Bold Bytes
-                  </span>
-                  <span className="hidden sm:inline-block text-slate-600">
-                    |
-                  </span>
-                  <span className="hidden sm:inline-block font-mono text-xs text-slate-400">
-                    Kanpur RDSS Supply Chain
-                  </span>
+              <div className="leading-tight">
+                <div className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                  Lumino Industries • Bold Bytes
                 </div>
-                <h1 className="text-xl font-bold tracking-tight text-white">
-                  1,700 Poles — Consumption-Driven Stock &amp; Ordering Planner
-                </h1>
+                <div className="font-mono text-[11px] text-slate-400">
+                  Kanpur RDSS Supply Chain
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900 px-2.5 py-1 text-slate-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                {metadata
-                  ? `${metadata.godowns.length} Active Godowns`
-                  : "Loading..."}
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900 px-2.5 py-1 text-slate-300">
-                {metadata
-                  ? `${metadata.date_range.start} → ${metadata.date_range.end}`
-                  : "44 Months"}
-              </span>
+            {/* Center: 3-View Navigation Tabs */}
+            <nav
+              aria-label="Planner Modules"
+              className="order-3 w-full sm:order-2 sm:w-auto flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/90 p-1"
+            >
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    title={tab.subtitle}
+                    className={`flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                      isActive
+                        ? "bg-amber-500 text-slate-950 shadow-xs"
+                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Right: Global RBAC Profile Switcher */}
+            <div className="order-2 sm:order-3 flex items-center">
+              <NavbarProfileDropdown metadata={metadata} />
             </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Global KPI Strip */}
+        {/* Global KPI Strip (3 Columns) */}
         {error ? (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {error}
@@ -214,7 +225,7 @@ export default function HomePage() {
         ) : (
           <section
             aria-label="Global Project KPIs"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
           >
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs font-medium text-slate-500">
@@ -249,7 +260,7 @@ export default function HomePage() {
               </div>
               <p className="mt-1 text-xs text-amber-800 tabular-nums">
                 {loading || !flagshipStats
-                  ? "Scanning 44-month ledger..."
+                  ? "Scanning ledger..."
                   : `Peak in ${flagshipStats.peakGodownMonth} • Contractor peak ${formatQty(flagshipStats.peakContractorStock)} ${flagshipStats.unit}`}
               </p>
             </div>
@@ -272,77 +283,13 @@ export default function HomePage() {
                   : `${metadata.items.length} SKUs • ${metadata.sets.length} Kit Sets • ${formatQty(ledgerRows.length)} ledger rows`}
               </p>
             </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                <span>Project Replay Window</span>
-                <CalendarRange className="h-4 w-4 text-slate-600" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tabular-nums text-slate-900">
-                  {loading || !metadata
-                    ? "—"
-                    : `${metadata.date_range.total_months} Months`}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-slate-500 font-mono">
-                {loading || !metadata
-                  ? "Loading timeline..."
-                  : `${metadata.date_range.start}–${metadata.date_range.end} (receipts end ${metadata.date_range.receipts_end})`}
-              </p>
-            </div>
           </section>
         )}
-
-        {/* 3-Tab Feature Switcher */}
-        <nav
-          aria-label="Planner Modules"
-          className="grid grid-cols-1 gap-2 sm:grid-cols-3 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs"
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors cursor-pointer ${
-                  isActive
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
-                    isActive
-                      ? "bg-amber-500 text-slate-950"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold leading-tight">
-                    {tab.label}
-                  </div>
-                  <div
-                    className={`truncate text-xs ${
-                      isActive ? "text-slate-300" : "text-slate-500"
-                    }`}
-                  >
-                    {tab.subtitle}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </nav>
 
         {/* Active Track Feature View */}
         <div className="pb-8">
           {activeTab === "ledger" && <LedgerView />}
-          {activeTab === "planner" && <PlannerView />}
+          {activeTab === "planner" && <PlannerView hideProfileSwitcher />}
           {activeTab === "sets" && <SetsView />}
         </div>
       </main>

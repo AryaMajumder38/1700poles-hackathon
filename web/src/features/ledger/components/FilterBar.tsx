@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Boxes, Building2, Calendar, Filter } from "lucide-react";
+import { Boxes, Building2, Calendar, Filter, Lock } from "lucide-react";
 import type { ActiveGodown, ItemMaster } from "@/types/lumino";
 
 interface FilterBarProps {
@@ -11,6 +11,7 @@ interface FilterBarProps {
   godowns: ActiveGodown[];
   selectedGodown: string; // "ALL" or ActiveGodown
   onSelectGodown: (godown: string) => void;
+  lockedGodown?: ActiveGodown | null;
   months: string[];
   startMonth: string;
   endMonth: string;
@@ -26,6 +27,7 @@ export function FilterBar({
   godowns,
   selectedGodown,
   onSelectGodown,
+  lockedGodown = null,
   months,
   startMonth,
   endMonth,
@@ -130,19 +132,38 @@ export function FilterBar({
             >
               <Building2 className="h-3.5 w-3.5 text-slate-500" />
               <span>Godown Scope:</span>
+              {lockedGodown && (
+                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
+                  <Lock className="h-2.5 w-2.5" />
+                  Site Scoped
+                </span>
+              )}
             </label>
             <select
               id="godown-selector"
-              value={selectedGodown}
-              onChange={(e) => onSelectGodown(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 cursor-pointer"
+              value={lockedGodown ?? selectedGodown}
+              disabled={Boolean(lockedGodown)}
+              onChange={(e) => {
+                if (!lockedGodown) onSelectGodown(e.target.value);
+              }}
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 ${
+                lockedGodown
+                  ? "border-amber-300 bg-amber-50/70 text-amber-950 font-semibold cursor-not-allowed"
+                  : "border-slate-300 bg-white text-slate-900 cursor-pointer"
+              }`}
             >
-              <option value="ALL">All 6 Active Godowns (Aggregated)</option>
-              {godowns.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
+              {lockedGodown ? (
+                <option value={lockedGodown}>{lockedGodown}</option>
+              ) : (
+                <>
+                  <option value="ALL">All 6 Active Godowns (Aggregated)</option>
+                  {godowns.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
 
