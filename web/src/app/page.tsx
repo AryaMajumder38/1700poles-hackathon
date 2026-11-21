@@ -14,6 +14,7 @@ import {
 import LedgerView from "@/features/ledger";
 import PlannerView from "@/features/planner";
 import SetsView from "@/features/sets";
+import OpsCopilotDrawer from "@/features/copilot/OpsCopilotDrawer";
 import type {
   ContractorStockRow,
   MetadataPayload,
@@ -345,6 +346,7 @@ export default function HomePage() {
           {activeTab === "sets" && <SetsView />}
         </div>
       </main>
+      <OpsCopilotDrawer activeTab={activeTab} />
     </div>
   );
 }
