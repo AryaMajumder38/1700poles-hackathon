@@ -363,7 +363,7 @@ export default function RequisitionWorkflowPanel({
                         }
                         className="w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs sm:w-56"
                       />
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() =>
@@ -374,7 +374,7 @@ export default function RequisitionWorkflowPanel({
                                 "Approved pickup from surplus yard stock."
                             )
                           }
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 cursor-pointer"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Approve Pickup
                         </button>
@@ -388,7 +388,7 @@ export default function RequisitionWorkflowPanel({
                                 "Declined: stock committed to local erection schedule."
                             )
                           }
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 cursor-pointer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 cursor-pointer"
                         >
                           <XCircle className="h-3.5 w-3.5" /> Decline Pickup
                         </button>
@@ -507,7 +507,7 @@ export default function RequisitionWorkflowPanel({
 
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 cursor-pointer"
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
           >
             <Send className="h-3.5 w-3.5" /> Send Request to Head of Projects
           </button>
@@ -631,7 +631,7 @@ export default function RequisitionWorkflowPanel({
                           <button
                             type="button"
                             onClick={() => onSwitchToStaff(donorManager.staff_id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-800 hover:bg-rose-100 cursor-pointer"
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-1 cursor-pointer"
                           >
                             <Lock className="h-3 w-3" /> Switch to{" "}
                             {donorManager.name} to Consent
@@ -653,7 +653,7 @@ export default function RequisitionWorkflowPanel({
                         <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
                           Head of Projects Fulfillment Action
                         </span>
-                        <div className="inline-flex rounded-md border border-amber-300 bg-white p-0.5 text-[11px]">
+                        <div className="inline-flex flex-wrap rounded-md border border-amber-300 bg-white p-0.5 text-[11px]">
                           <button
                             type="button"
                             onClick={() =>
@@ -662,7 +662,7 @@ export default function RequisitionWorkflowPanel({
                                 [req.req_id]: "TRANSFER",
                               }))
                             }
-                            className={`rounded px-2.5 py-1 font-semibold cursor-pointer ${
+                            className={`rounded px-2.5 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer ${
                               mode === "TRANSFER"
                                 ? "bg-slate-900 text-white"
                                 : "text-slate-700"
@@ -678,7 +678,7 @@ export default function RequisitionWorkflowPanel({
                                 [req.req_id]: "VENDOR",
                               }))
                             }
-                            className={`rounded px-2.5 py-1 font-semibold cursor-pointer ${
+                            className={`rounded px-2.5 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer ${
                               mode === "VENDOR"
                                 ? "bg-slate-900 text-white"
                                 : "text-slate-700"
@@ -743,14 +743,14 @@ export default function RequisitionWorkflowPanel({
                                 d
                               );
                             }}
-                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800 cursor-pointer"
+                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
                           >
                             <Lock className="h-3.5 w-3.5" /> Request Donor Consent
                           </button>
                           <button
                             type="button"
                             onClick={() => onHeadReject(req.req_id)}
-                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
                           >
                             Reject
                           </button>
@@ -783,14 +783,14 @@ export default function RequisitionWorkflowPanel({
                                 matObj?.lead_time_days ?? 60
                               )
                             }
-                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 cursor-pointer"
+                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 cursor-pointer"
                           >
                             <ShoppingCart className="h-3.5 w-3.5" /> Issue Vendor PO
                           </button>
                           <button
                             type="button"
                             onClick={() => onHeadReject(req.req_id)}
-                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
                           >
                             Reject
                           </button>
@@ -924,7 +924,7 @@ export default function RequisitionWorkflowPanel({
                                     )
                                   )
                                 }
-                                className="rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800 cursor-pointer"
+                                className="rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-1 cursor-pointer"
                               >
                                 Receive
                               </button>

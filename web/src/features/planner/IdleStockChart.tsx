@@ -26,6 +26,7 @@ interface IdleStockChartProps {
   activeMonth: string;
   onSelectMonth: (month: string) => void;
   footerSlot?: ReactNode;
+  scopedGodown?: string | null;
 }
 
 interface CustomTooltipProps {
@@ -121,6 +122,7 @@ export default function IdleStockChart({
   activeMonth,
   onSelectMonth,
   footerSlot,
+  scopedGodown,
 }: IdleStockChartProps) {
   const [chartMode, setChartMode] = useState<"idle" | "receipts">("idle");
 
@@ -143,27 +145,36 @@ export default function IdleStockChart({
       className="hp-floating-panel overflow-hidden"
     >
       {/* Clean White Panel Header */}
-      <div className="flex flex-col gap-3 border-b border-[#e9e5e8] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="hp-heading text-lg font-extrabold text-[#14141c]">
-            {chartMode === "idle" ? (
-              <>
-                Idle stock trajectory{" "}
-                <span className="hp-italic text-[23px] font-light text-[#31263b]">
-                  across 44 months
-                </span>
-              </>
-            ) : (
-              <>
-                Vendor receipts &amp; site usage{" "}
-                <span className="hp-italic text-[23px] font-light text-[#31263b]">
-                  cadence
-                </span>
-              </>
+      <div className="flex flex-col gap-3 border-b border-[#e9e5e8] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="hp-heading text-lg font-extrabold text-[#14141c]">
+              {chartMode === "idle" ? (
+                <>
+                  Idle stock trajectory{" "}
+                  <span className="hp-italic text-[23px] font-light text-[#31263b]">
+                    across 44 months
+                  </span>
+                </>
+              ) : (
+                <>
+                  Vendor receipts &amp; site usage{" "}
+                  <span className="hp-italic text-[23px] font-light text-[#31263b]">
+                    cadence
+                  </span>
+                </>
+              )}
+            </h3>
+            {scopedGodown && (
+              <span className="hp-mono inline-flex items-center border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-sky-800">
+                Project-Wide (6 Godowns)
+              </span>
             )}
-          </h3>
+          </div>
           <p className="mt-0.5 text-xs font-light text-[#89828d]">
-            Click any point on the curve to jump to that month ·{" "}
+            {scopedGodown
+              ? "Project-wide backtest series (consumption is tracked project-wide) · "
+              : "Click any point on the curve to jump to that month · "}
             {activePoint && (
               <span className="hp-mono text-[#43394c]">
                 {activeMonth} delta:{" "}
@@ -178,11 +189,12 @@ export default function IdleStockChart({
           </p>
         </div>
 
-        <div className="inline-flex self-start border border-[#dbd7da] bg-[#fffcfc] sm:self-center">
+        <div className="inline-flex shrink-0 self-start border border-[#dbd7da] bg-[#fffcfc] sm:self-center">
           <button
             type="button"
+            aria-pressed={chartMode === "idle"}
             onClick={() => setChartMode("idle")}
-            className={`hp-mono px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer ${
+            className={`hp-mono px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
               chartMode === "idle"
                 ? "bg-[#31263b] text-[#fffcfc]"
                 : "text-[#43394c] hover:bg-[#e9e5e8]"
@@ -192,8 +204,9 @@ export default function IdleStockChart({
           </button>
           <button
             type="button"
+            aria-pressed={chartMode === "receipts"}
             onClick={() => setChartMode("receipts")}
-            className={`hp-mono border-l border-[#dbd7da] px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer ${
+            className={`hp-mono border-l border-[#dbd7da] px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
               chartMode === "receipts"
                 ? "bg-[#31263b] text-[#fffcfc]"
                 : "text-[#43394c] hover:bg-[#e9e5e8]"

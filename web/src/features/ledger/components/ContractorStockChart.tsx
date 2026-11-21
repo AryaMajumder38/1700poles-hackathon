@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   Area,
   Bar,
@@ -13,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import type { ItemUnit } from "@/types/lumino";
-import { formatQty } from "../utils";
+import { formatMonthShort, formatQty, formatWithUnit } from "../utils";
 
 export interface ContractorChartDataPoint {
   month: string;
@@ -27,21 +28,24 @@ export interface ContractorChartDataPoint {
 interface ContractorStockChartProps {
   data: ContractorChartDataPoint[];
   unit: ItemUnit;
-  itemCode: string;
-  itemName: string;
+  receiptsEndMonth?: string;
 }
 
 export function ContractorStockChart({
   data,
   unit,
-  itemCode,
-  itemName,
+  receiptsEndMonth,
 }: ContractorStockChartProps) {
+  const showFreezeLine = useMemo(
+    () => Boolean(receiptsEndMonth && data.some((d) => d.month === receiptsEndMonth)),
+    [data, receiptsEndMonth]
+  );
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3 mb-4">
-        <div>
-          <div className="flex items-center gap-2">
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div className="mb-4 flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-semibold text-slate-900">
               Project-Wide Contractor Stock vs. Actual Field Consumption
             </h4>
@@ -49,18 +53,18 @@ export function ContractorStockChart({
               Project-Wide Scope (All 6 Districts)
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="mt-0.5 text-xs text-slate-500">
             Lumino ERP tracks consumption at project scope. Visualizes contractor hoarding vs field erection [{unit}].
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 border border-amber-200">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
             Shaded Area: Contractor Idle Stock
           </span>
         </div>
       </div>
 
-      <div className="h-80 w-full">
+      <div className="h-80 w-full min-w-0">
         {data.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-slate-500">
             No contractor stock data points available for the selected filters.
@@ -69,7 +73,7 @@ export function ContractorStockChart({
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={data}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 18, right: 12, left: 0, bottom: 4 }}
             >
               <defs>
                 <linearGradient id="contractorStockGradient" x1="0" y1="0" x2="0" y2="1">
@@ -91,62 +95,75 @@ export function ContractorStockChart({
               <YAxis
                 yAxisId="qty"
                 tick={{ fontSize: 11, fill: "#64748b" }}
-                tickFormatter={(val) => formatQty(val, unit)}
+                tickFormatter={(val: number) => formatQty(val, unit)}
                 width={65}
               />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || !payload.length) return null;
                   return (
-                    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-lg text-xs">
-                      <div className="font-bold text-slate-900 border-b border-slate-100 pb-1 mb-1.5 flex justify-between">
+                    <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-lg">
+                      <div className="mb-1.5 flex justify-between gap-4 border-b border-slate-100 pb-1 font-bold text-slate-900">
                         <span>{label}</span>
-                        <span className="text-slate-500 font-normal">{unit}</span>
+                        <span className="font-normal text-slate-500">{unit}</span>
                       </div>
                       <div className="space-y-1">
-                        {payload.map((entry) => (
-                          <div
-                            key={entry.dataKey as string}
-                            className="flex items-center justify-between gap-4"
-                          >
-                            <span className="flex items-center gap-1.5 text-slate-600">
-                              <span
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: entry.color }}
-                              />
-                              {entry.name}:
-                            </span>
-                            <span className="font-semibold text-slate-900 font-mono">
-                              {formatQty(Number(entry.value), unit)} {unit}
-                            </span>
-                          </div>
-                        ))}
+                        {payload.map((entry, idx) => {
+                          const entryKey =
+                            typeof entry.dataKey === "string" || typeof entry.dataKey === "number"
+                              ? String(entry.dataKey)
+                              : typeof entry.name === "string" || typeof entry.name === "number"
+                                ? String(entry.name)
+                                : `series-${idx}`;
+                          const numericValue =
+                            typeof entry.value === "number"
+                              ? entry.value
+                              : Number(entry.value ?? 0);
+                          return (
+                            <div
+                              key={entryKey}
+                              className="flex items-center justify-between gap-4"
+                            >
+                              <span className="flex items-center gap-1.5 text-slate-600">
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full"
+                                  style={{ backgroundColor: entry.color }}
+                                />
+                                {entry.name}:
+                              </span>
+                              <span className="font-mono font-semibold tabular-nums text-slate-900">
+                                {formatWithUnit(numericValue, unit)}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 }}
               />
               <Legend
-                verticalAlign="top"
-                align="right"
-                height={32}
+                verticalAlign="bottom"
+                align="center"
                 iconType="circle"
-                wrapperStyle={{ fontSize: 11, paddingBottom: 8 }}
+                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
               />
 
-              <ReferenceLine
-                x="2026-07"
-                stroke="#ef4444"
-                strokeDasharray="4 4"
-                yAxisId="qty"
-                label={{
-                  value: "Receipts Freeze (Jul '26)",
-                  position: "top",
-                  fill: "#dc2626",
-                  fontSize: 10,
-                  fontWeight: 600,
-                }}
-              />
+              {showFreezeLine && receiptsEndMonth && (
+                <ReferenceLine
+                  x={receiptsEndMonth}
+                  stroke="#ef4444"
+                  strokeDasharray="4 4"
+                  yAxisId="qty"
+                  label={{
+                    value: `Receipts Freeze (${formatMonthShort(receiptsEndMonth)})`,
+                    position: "top",
+                    fill: "#dc2626",
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}
+                />
+              )}
 
               {/* Monthly Net Issues to Contractors */}
               <Bar

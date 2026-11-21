@@ -3,7 +3,7 @@
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import type { ItemMaster } from "@/types/lumino";
 import { PrimaryPlateButton } from "./HexPrimitives";
-import { formatQty } from "./plannerTypes";
+import { formatQty, shortGodownName } from "./plannerTypes";
 
 export type DecisionFilter = "ALL" | "ORDER" | "TRANSFER" | "HOLD" | "WAIT";
 
@@ -16,6 +16,8 @@ interface MonthScrubberProps {
   selectedItem: ItemMaster;
   contractorIdleStock: number;
   totalProjectedDemand: number;
+  scopedGodown?: string | null;
+  scopedProjectedDemand?: number | null;
 }
 
 const MILESTONES = [
@@ -35,6 +37,8 @@ export default function MonthScrubber({
   selectedItem,
   contractorIdleStock,
   totalProjectedDemand,
+  scopedGodown,
+  scopedProjectedDemand,
 }: MonthScrubberProps) {
   const activeMonth = months[monthIndex] ?? months[0];
   const isWindDown = activeMonth >= "2026-07";
@@ -92,7 +96,7 @@ export default function MonthScrubber({
             <SkipForward className="h-3.5 w-3.5" />
           </button>
 
-          <div className="ml-2 border-l border-[#3a3138] pl-4">
+          <div className="ml-0 border-l-0 pl-0 sm:ml-2 sm:border-l sm:border-[#3a3138] sm:pl-4">
             <div className="hp-mono hp-dark-gradient text-xl font-semibold leading-none tracking-tight">
               {activeMonth}
             </div>
@@ -108,8 +112,20 @@ export default function MonthScrubber({
             <span className="text-[#99797d]">LEAD TIME </span>
             <span className="text-[#ffffff]">{selectedItem.lead_time_days}d</span>
           </span>
+          {scopedGodown && scopedProjectedDemand != null && (
+            <span>
+              <span className="text-[#99797d]">
+                {shortGodownName(scopedGodown).toUpperCase()} DEMAND{" "}
+              </span>
+              <span className="text-[#ffffff]">
+                {formatQty(scopedProjectedDemand, selectedItem.unit)}
+              </span>
+            </span>
+          )}
           <span>
-            <span className="text-[#99797d]">CONTRACTOR IDLE </span>
+            <span className="text-[#99797d]">
+              CONTRACTOR IDLE{scopedGodown ? " (PROJECT-WIDE)" : ""}{" "}
+            </span>
             <span className={throttleActive ? "text-[#f5c0c0]" : "text-[#ffffff]"}>
               {formatQty(contractorIdleStock, selectedItem.unit)}
               {throttleActive ? " (θ=0.5)" : ""}

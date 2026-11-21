@@ -8,6 +8,24 @@ import type {
 export const SHARED_BOLT_CODE = "MNB010174";
 export const WIND_DOWN_START = "2026-08";
 
+export const ACTIVE_GODOWNS: readonly ActiveGodown[] = [
+  "KANPUR AURAIYA",
+  "KANPUR DEHAT",
+  "KANPUR ETAWAH",
+  "KANPUR FARRUKHABAD",
+  "KANPUR KANNAUJ",
+  "KANPUR NAGAR",
+];
+
+export function isActiveGodown(
+  value: string | null | undefined
+): value is ActiveGodown {
+  return (
+    typeof value === "string" &&
+    ACTIVE_GODOWNS.some((godown) => godown === value)
+  );
+}
+
 export type CellVisualStatus = "zero" | "balanced" | "warning" | "critical";
 
 export function isZeroStockRow(row: SetImbalanceRow): boolean {

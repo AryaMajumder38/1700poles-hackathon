@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -32,27 +32,30 @@ export default function RatioModeBanner({
   const [showRatioTable, setShowRatioTable] = useState(false);
 
   // Extract one representative row per (set_no, mode) to compare exact BOM vs empirical ratios
-  const ratioLookup = new Map<string, number>();
-  for (const row of allRows) {
-    for (const child of row.children) {
-      const key = `${row.ratio_mode}__${row.set_no}__${child.child_code}`;
-      if (!ratioLookup.has(key)) {
-        ratioLookup.set(key, child.ratio_used);
+  const ratioLookup = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of allRows) {
+      for (const child of row.children) {
+        const key = `${row.ratio_mode}__${row.set_no}__${child.child_code}`;
+        if (!map.has(key)) {
+          map.set(key, child.ratio_used);
+        }
       }
     }
-  }
+    return map;
+  }, [allRows]);
 
   return (
     <section
       aria-label="Ratio Mode Selector and Data Discovery"
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4"
+      className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4 min-w-0"
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-amber-400">
             <Scale className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
                 Job 3 • Match the Sets
@@ -71,19 +74,20 @@ export default function RatioModeBanner({
         <div
           role="group"
           aria-label="Kit Ratio Mode"
-          className="inline-flex self-start rounded-xl border border-slate-200 bg-slate-100 p-1 lg:self-center"
+          className="flex flex-wrap sm:inline-flex self-start rounded-xl border border-slate-200 bg-slate-100 p-1 gap-1 lg:self-center"
         >
           <button
             type="button"
+            aria-pressed={ratioMode === "empirical"}
             onClick={() => onChangeMode("empirical")}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+            className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
               ratioMode === "empirical"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <Sparkles
-              className={`h-3.5 w-3.5 ${
+              className={`h-3.5 w-3.5 shrink-0 ${
                 ratioMode === "empirical" ? "text-amber-400" : "text-slate-400"
               }`}
             />
@@ -101,15 +105,16 @@ export default function RatioModeBanner({
 
           <button
             type="button"
+            aria-pressed={ratioMode === "bom"}
             onClick={() => onChangeMode("bom")}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+            className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
               ratioMode === "bom"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
             <AlertTriangle
-              className={`h-3.5 w-3.5 ${
+              className={`h-3.5 w-3.5 shrink-0 ${
                 ratioMode === "bom" ? "text-amber-400" : "text-slate-400"
               }`}
             />
@@ -165,8 +170,9 @@ export default function RatioModeBanner({
 
           <button
             type="button"
+            aria-expanded={showRatioTable}
             onClick={() => setShowRatioTable((prev) => !prev)}
-            className="inline-flex shrink-0 items-center gap-1 self-start rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            className="inline-flex shrink-0 items-center gap-1 self-start rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 cursor-pointer"
           >
             {showRatioTable ? (
               <>
@@ -183,7 +189,7 @@ export default function RatioModeBanner({
 
       {/* Collapsible Side-by-Side Ratio Reference Table */}
       {showRatioTable && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
           <table className="min-w-full divide-y divide-slate-200 text-xs">
             <thead className="bg-slate-50 text-left font-semibold text-slate-600">
               <tr>
@@ -212,6 +218,12 @@ export default function RatioModeBanner({
                   if (isShared) {
                     note =
                       "MT vs pcs unit mismatch (~11,600× BOM overstatement); allocated proportionally across 3 sets";
+                  } else if (bomR <= 0 && empR > 0) {
+                    note = `No BOM ratio (site consumes ~${empR.toFixed(2)} ${ch.child_unit}/${s.parent_unit})`;
+                  } else if (empR <= 0 && bomR > 0) {
+                    note = `No empirical consumption observed (BOM lists ${formatRatio(bomR, ch.child_unit)} ${ch.child_unit}/${s.parent_unit})`;
+                  } else if (bomR <= 0 && empR <= 0) {
+                    note = "n/a (no BOM or empirical ratio)";
                   } else if (factor < 0.2) {
                     note = `Under-stated ${(1 / factor).toFixed(1)}× in BOM (site consumes ~${empR.toFixed(2)} ${ch.child_unit}/${s.parent_unit})`;
                   } else if (factor > 2.5) {

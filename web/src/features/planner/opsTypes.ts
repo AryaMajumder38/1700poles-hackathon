@@ -360,6 +360,59 @@ export function createInitialOpsState(
   };
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isValidOpsStoreState(value: unknown): value is OpsStoreState {
+  if (!isPlainRecord(value)) return false;
+
+  if (
+    !Array.isArray(value.projects) ||
+    !Array.isArray(value.warehouses) ||
+    !Array.isArray(value.staff) ||
+    !Array.isArray(value.suppliers) ||
+    !Array.isArray(value.customMaterials) ||
+    !Array.isArray(value.requisitions) ||
+    !Array.isArray(value.vendorOrders) ||
+    !Array.isArray(value.ownershipLedger)
+  ) {
+    return false;
+  }
+
+  if (
+    !isPlainRecord(value.materialSupplierMap) ||
+    !isPlainRecord(value.liveStockAdjustments)
+  ) {
+    return false;
+  }
+
+  const validWarehouses = value.warehouses.every(
+    (w) =>
+      isPlainRecord(w) &&
+      typeof w.warehouse_id === "string" &&
+      typeof w.name === "string" &&
+      typeof w.project_id === "string"
+  );
+  if (!validWarehouses) return false;
+
+  const validStaff = value.staff.every(
+    (s) =>
+      isPlainRecord(s) &&
+      typeof s.staff_id === "string" &&
+      typeof s.name === "string" &&
+      typeof s.warehouse_id === "string"
+  );
+  if (!validStaff) return false;
+
+  const validAdjustments = Object.values(value.liveStockAdjustments).every(
+    (v) => typeof v === "number" && Number.isFinite(v)
+  );
+  if (!validAdjustments) return false;
+
+  return true;
+}
+
 export function loadOpsState(
   godowns: ActiveGodown[],
   items: ItemMaster[]
@@ -370,8 +423,8 @@ export function loadOpsState(
   try {
     const raw = window.localStorage.getItem(OPS_STORAGE_KEY);
     if (!raw) return createInitialOpsState(godowns, items);
-    const parsed = JSON.parse(raw) as OpsStoreState;
-    if (!parsed || !Array.isArray(parsed.warehouses) || !Array.isArray(parsed.staff)) {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidOpsStoreState(parsed)) {
       return createInitialOpsState(godowns, items);
     }
     return parsed;

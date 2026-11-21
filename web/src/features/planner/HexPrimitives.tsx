@@ -65,24 +65,6 @@ export function CornerMarks({
   );
 }
 
-export function SparkleGlyph({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M12 2V7.5M12 16.5V22M2 12H7.5M16.5 12H22M4.93 4.93L8.82 8.82M15.18 15.18L19.07 19.07M19.07 4.93L15.18 8.82M8.82 15.18L4.93 19.07"
-        stroke="#cda0a5"
-        strokeWidth="1.25"
-        strokeLinecap="square"
-      />
-    </svg>
-  );
-}
-
 interface PrimaryPlateButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "light" | "dark";

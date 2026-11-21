@@ -76,7 +76,7 @@ export default function CellBottleneckInspector({
   return (
     <section
       aria-label="Cell Drill-Down and Bottleneck Inspector"
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-5"
+      className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-5 min-w-0"
     >
       {/* Inspector Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-slate-100 pb-4">
@@ -240,7 +240,7 @@ export default function CellBottleneckInspector({
 
       {/* Law of the Minimum Visual Capacity Bars + Detailed Component Table */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h4 className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
             <Wrench className="h-3.5 w-3.5 text-slate-500" />
             Child Component Breakdown &amp; Stranded Surplus
@@ -253,7 +253,7 @@ export default function CellBottleneckInspector({
         {/* Visual Capacity Bars */}
         {!zeroStock && row.parent_stock > 0 && (
           <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 space-y-2.5">
-            <div className="flex items-center justify-between text-[11px] text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-600">
               <span className="font-semibold">
                 Buildable Capacity vs. Parent Demand ({formatQty(row.parent_stock, row.parent_unit)})
               </span>
@@ -274,7 +274,7 @@ export default function CellBottleneckInspector({
 
               return (
                 <div key={child.child_code} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="font-mono font-semibold text-slate-800">
                         {child.child_code}
@@ -320,7 +320,7 @@ export default function CellBottleneckInspector({
         )}
 
         {/* Exact Quantities Table */}
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
           <table className="min-w-full divide-y divide-slate-200 text-xs">
             <thead className="bg-slate-50 text-left font-semibold text-slate-600">
               <tr>

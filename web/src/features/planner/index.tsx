@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -34,6 +34,7 @@ import {
   createInitialOpsState,
   getAllCatalogMaterials,
   loadOpsState,
+  OPS_STORAGE_KEY,
   saveOpsState,
   type OpsMaterial,
   type OpsProject,
@@ -51,21 +52,23 @@ import {
 } from "./plannerTypes";
 import {
   DEFAULT_ADMIN_SESSION,
+  OPS_CHANGE_EVENT,
   useRbacSession,
 } from "./rbacBridge";
 
 export interface PlannerViewProps {
-  /** Set true by page.tsx once NavbarProfileDropdown is mounted in the global top navbar */
+  /** Retained for caller compatibility with page.tsx */
   hideProfileSwitcher?: boolean;
 }
 
-export default function PlannerView({
-  hideProfileSwitcher = false,
-}: PlannerViewProps = {}) {
+export default function PlannerView(props: PlannerViewProps = {}) {
+  void props.hideProfileSwitcher;
   const [metadata, setMetadata] = useState<MetadataPayload | null>(null);
   const [actions, setActions] = useState<SimulationAction[]>([]);
   const [summaries, setSummaries] = useState<PlannerBacktestComparison[]>([]);
   const [opsState, setOpsState] = useState<OpsStoreState | null>(null);
+  const opsStateRef = useRef<OpsStoreState | null>(null);
+  const selfOpsDispatchRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,10 +116,12 @@ export default function PlannerView({
         ];
 
         if (!cancelled) {
+          const initialOps = loadOpsState(metaJson.godowns, metaJson.items);
+          opsStateRef.current = initialOps;
           setMetadata(metaJson);
           setActions(simJson);
           setSummaries(btJson);
-          setOpsState(loadOpsState(metaJson.godowns, metaJson.items));
+          setOpsState(initialOps);
           setLoading(false);
         }
       } catch (err) {
@@ -135,13 +140,47 @@ export default function PlannerView({
     };
   }, []);
 
-  const updateOps = (updater: (prev: OpsStoreState) => OpsStoreState) => {
-    setOpsState((prev) => {
-      if (!prev) return prev;
-      const next = updater(prev);
+  useEffect(() => {
+    opsStateRef.current = opsState;
+  }, [opsState]);
+
+  useEffect(() => {
+    if (!metadata) return;
+    const syncOpsFromStorage = () => {
+      if (selfOpsDispatchRef.current) return;
+      const latest = loadOpsState(metadata.godowns, metadata.items);
+      opsStateRef.current = latest;
+      setOpsState(latest);
+    };
+    const onStorage = (evt: StorageEvent) => {
+      if (evt.key !== null && evt.key !== OPS_STORAGE_KEY) return;
+      syncOpsFromStorage();
+    };
+    window.addEventListener(OPS_CHANGE_EVENT, syncOpsFromStorage);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(OPS_CHANGE_EVENT, syncOpsFromStorage);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [metadata]);
+
+  const persistOpsState = (next: OpsStoreState) => {
+    selfOpsDispatchRef.current = true;
+    try {
       saveOpsState(next);
-      return next;
-    });
+    } finally {
+      selfOpsDispatchRef.current = false;
+    }
+  };
+
+  const updateOps = (updater: (prev: OpsStoreState) => OpsStoreState) => {
+    const current = opsStateRef.current;
+    if (!current) return;
+    const next = updater(current);
+    if (next === current) return;
+    opsStateRef.current = next;
+    setOpsState(next);
+    persistOpsState(next);
   };
 
   const months = useMemo(
@@ -151,17 +190,20 @@ export default function PlannerView({
 
   useEffect(() => {
     if (!isPlaying || months.length === 0) return;
-    const timer = window.setInterval(() => {
-      setMonthIndex((prev) => {
-        if (prev >= months.length - 1) {
-          setIsPlaying(false);
-          return prev;
-        }
-        return prev + 1;
-      });
+    const lastIndex = months.length - 1;
+    if (monthIndex >= lastIndex) {
+      const stopTimer = window.setTimeout(() => setIsPlaying(false), 0);
+      return () => window.clearTimeout(stopTimer);
+    }
+    const timer = window.setTimeout(() => {
+      const nextIndex = Math.min(lastIndex, monthIndex + 1);
+      setMonthIndex(nextIndex);
+      if (nextIndex >= lastIndex) {
+        setIsPlaying(false);
+      }
     }, 850);
-    return () => window.clearInterval(timer);
-  }, [isPlaying, months.length]);
+    return () => window.clearTimeout(timer);
+  }, [isPlaying, monthIndex, months.length]);
 
   const activeMonth = months[monthIndex] ?? "2023-03";
 
@@ -233,6 +275,13 @@ export default function PlannerView({
     return monthActionsAllGodowns.filter((a) => a.godown === lockedGodownName);
   }, [monthActionsAllGodowns, lockedGodownName]);
 
+  const godownScopedMonthActions = useMemo(() => {
+    if (lockedGodownName || selectedGodown === "ALL") {
+      return rbacScopedMonthActions;
+    }
+    return rbacScopedMonthActions.filter((a) => a.godown === selectedGodown);
+  }, [rbacScopedMonthActions, lockedGodownName, selectedGodown]);
+
   const decisionCounts = useMemo(() => {
     const counts: Record<SimulationDecision, number> = {
       ORDER: 0,
@@ -241,28 +290,25 @@ export default function PlannerView({
       TRANSFER_OUT: 0,
       WAIT: 0,
     };
-    for (const a of rbacScopedMonthActions) {
+    for (const a of godownScopedMonthActions) {
       counts[a.decision] += 1;
     }
     return counts;
-  }, [rbacScopedMonthActions]);
+  }, [godownScopedMonthActions]);
 
   const filteredMonthActions = useMemo(() => {
-    return rbacScopedMonthActions.filter((a) => {
-      if (
-        !lockedGodownName &&
-        selectedGodown !== "ALL" &&
-        a.godown !== selectedGodown
-      ) {
-        return false;
-      }
+    return godownScopedMonthActions.filter((a) => {
       if (decisionFilter === "ALL") return true;
       if (decisionFilter === "TRANSFER") {
         return a.decision === "TRANSFER_IN" || a.decision === "TRANSFER_OUT";
       }
       return a.decision === decisionFilter;
     });
-  }, [rbacScopedMonthActions, lockedGodownName, selectedGodown, decisionFilter]);
+  }, [godownScopedMonthActions, decisionFilter]);
+
+  const scopedMonthAction = lockedGodownName
+    ? rbacScopedMonthActions[0] ?? null
+    : null;
 
   const contractorIdleStock =
     monthActionsAllGodowns[0]?.contractor_idle_stock ?? 0;
@@ -294,7 +340,7 @@ export default function PlannerView({
     );
   }, [itemActions, lockedGodownName]);
 
-  // Notification counts for RoleAccessBar & Profile Dropdown
+  // Notification counts for RoleAccessBar
   const pendingHeadCount = useMemo(
     () =>
       opsState
@@ -315,17 +361,6 @@ export default function PlannerView({
         r.donor_warehouse_id === activeStaffWarehouse.warehouse_id
     ).length;
   }, [opsState, activeStaffWarehouse]);
-
-  const pendingConsentByWarehouse = useMemo(() => {
-    const counts: Record<string, number> = {};
-    if (!opsState) return counts;
-    for (const r of opsState.requisitions) {
-      if (r.status === "PENDING_DONOR_CONSENT" && r.donor_warehouse_id) {
-        counts[r.donor_warehouse_id] = (counts[r.donor_warehouse_id] ?? 0) + 1;
-      }
-    }
-    return counts;
-  }, [opsState]);
 
   const activeDeliveriesCount = useMemo(
     () =>
@@ -653,8 +688,9 @@ export default function PlannerView({
   const handleResetDemo = () => {
     if (!metadata) return;
     const fresh = createInitialOpsState(metadata.godowns, metadata.items);
-    saveOpsState(fresh);
+    opsStateRef.current = fresh;
     setOpsState(fresh);
+    persistOpsState(fresh);
     switchToAdmin();
   };
 
@@ -710,23 +746,19 @@ export default function PlannerView({
 
   return (
     <div className="space-y-5">
-      {/* Persistent Top RBAC Bar with Clickable Profile Icon & Scrollable Role Dropdown */}
+      {/* Persistent Top RBAC Scope & Sub-Navigation Bar */}
       <RoleAccessBar
         roleType={roleType}
         activeStaffId={activeStaffId}
         staff={opsState.staff}
         warehouses={opsState.warehouses}
         projects={opsState.projects}
-        onSwitchToAdmin={switchToAdmin}
-        onSwitchToStaff={switchToStaff}
         activeSubTab={activeSubTab}
         onChangeSubTab={setActiveSubTab}
         pendingHeadCount={pendingHeadCount}
         pendingConsentForUserCount={pendingConsentForUserCount}
-        pendingConsentByWarehouse={pendingConsentByWarehouse}
         activeDeliveriesCount={activeDeliveriesCount}
         onResetDemo={handleResetDemo}
-        hideProfileSwitcher={hideProfileSwitcher}
       />
 
       {/* SUB-TAB 1: Hex-Styled Causal Replay & The Bar (RBAC-Scoped for Site Managers) */}
@@ -737,9 +769,9 @@ export default function PlannerView({
           <CornerMarks tone="light" />
 
           {lockedGodownName && (
-            <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 bg-sky-50 px-6 py-3 text-xs text-sky-900 sm:px-9">
+            <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900 sm:px-9">
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-sky-700" />
+                <Lock className="h-4 w-4 shrink-0 text-sky-700" />
                 <span>
                   <strong>Site-Scoped Analytics Active:</strong> Viewing strictly{" "}
                   <strong>{shortGodownName(lockedGodownName)}</strong> (
@@ -751,7 +783,7 @@ export default function PlannerView({
                 <button
                   type="button"
                   onClick={() => setActiveSubTab("workflow")}
-                  className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-700 cursor-pointer"
+                  className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 cursor-pointer"
                 >
                   Review {pendingConsentForUserCount} Pickup Consent Request
                 </button>
@@ -760,9 +792,9 @@ export default function PlannerView({
           )}
 
           {/* 1. Compact Toolbar Header — Metrics First, Zero Fluff */}
-          <header className="relative px-5 py-4 sm:px-7">
+          <header className="relative px-4 py-4 sm:px-7">
             <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-baseline gap-2.5">
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
                 <h2 className="hp-heading text-lg font-extrabold text-[#14141c] whitespace-nowrap">
                   Ordering Planner
                 </h2>
@@ -818,14 +850,18 @@ export default function PlannerView({
               setDecisionFilter("ALL");
             }}
             showAllMatrix={showAllMatrix}
+            scopedGodown={lockedGodownName}
+            scopedMonthAction={scopedMonthAction}
+            scopedTransferCount={allItemTransferRoutes.length}
           />
 
           {/* 3. Airy Workspace Body */}
-          <div className="relative z-10 space-y-12 px-6 py-9 sm:px-9 sm:py-11">
+          <div className="relative z-10 space-y-9 px-4 py-7 sm:space-y-12 sm:px-9 sm:py-11">
             <IdleStockChart
               summary={selectedSummary}
               activeMonth={activeMonth}
               onSelectMonth={handleSelectMonthByString}
+              scopedGodown={lockedGodownName}
               footerSlot={
                 <MonthScrubber
                   months={months}
@@ -839,6 +875,10 @@ export default function PlannerView({
                   selectedItem={selectedItem}
                   contractorIdleStock={contractorIdleStock}
                   totalProjectedDemand={totalProjectedDemand}
+                  scopedGodown={lockedGodownName}
+                  scopedProjectedDemand={
+                    scopedMonthAction?.projected_monthly_demand ?? null
+                  }
                 />
               }
             />
@@ -863,6 +903,7 @@ export default function PlannerView({
               activeMonth={activeMonth}
               unit={selectedItem.unit}
               leadTimeDays={selectedItem.lead_time_days}
+              scopedGodown={lockedGodownName}
             />
 
             <div className="space-y-4 pt-2">

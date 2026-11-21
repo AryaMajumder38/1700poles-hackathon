@@ -17,17 +17,19 @@ import {
 interface SharedChildAlertPanelProps {
   rowsForMode: SetImbalanceRow[];
   ratioMode: SetRatioMode;
+  lockedGodown?: ActiveGodown | null;
   onJumpToCell: (setNo: string, godown: ActiveGodown, month: string) => void;
 }
 
 export default function SharedChildAlertPanel({
   rowsForMode,
   ratioMode,
+  lockedGodown = null,
   onJumpToCell,
 }: SharedChildAlertPanelProps) {
   const [selectedGodownFilter, setSelectedGodownFilter] = useState<
     "ALL" | ActiveGodown
-  >("ALL");
+  >(lockedGodown ?? "ALL");
   const [showAll, setShowAll] = useState(false);
 
   const collisions = useMemo(
@@ -54,10 +56,21 @@ export default function SharedChildAlertPanel({
     return { threeSet, twoSet, combinedOnly, byGodown };
   }, [collisions]);
 
+  const effectiveGodownFilter: "ALL" | ActiveGodown = useMemo(() => {
+    if (lockedGodown) return lockedGodown;
+    if (
+      selectedGodownFilter !== "ALL" &&
+      !summary.byGodown.has(selectedGodownFilter)
+    ) {
+      return "ALL";
+    }
+    return selectedGodownFilter;
+  }, [lockedGodown, selectedGodownFilter, summary.byGodown]);
+
   const filteredCollisions = useMemo(() => {
-    if (selectedGodownFilter === "ALL") return collisions;
-    return collisions.filter((c) => c.godown === selectedGodownFilter);
-  }, [collisions, selectedGodownFilter]);
+    if (effectiveGodownFilter === "ALL") return collisions;
+    return collisions.filter((c) => c.godown === effectiveGodownFilter);
+  }, [collisions, effectiveGodownFilter]);
 
   const visibleEvents = showAll
     ? filteredCollisions
@@ -66,7 +79,7 @@ export default function SharedChildAlertPanel({
   return (
     <section
       aria-label="Shared Child Bottleneck Alert Panel"
-      className="rounded-xl border border-amber-300/80 bg-white p-5 shadow-xs space-y-4"
+      className="rounded-xl border border-amber-300/80 bg-white p-4 sm:p-5 shadow-xs space-y-4 min-w-0"
     >
       {/* Panel Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -128,13 +141,18 @@ export default function SharedChildAlertPanel({
       </div>
 
       {/* Godown Filter Pills */}
-      {collisions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+      {!lockedGodown && collisions.length > 0 && (
+        <div
+          role="group"
+          aria-label="Filter collisions by godown"
+          className="flex flex-wrap items-center gap-1.5"
+        >
           <button
             type="button"
+            aria-pressed={effectiveGodownFilter === "ALL"}
             onClick={() => setSelectedGodownFilter("ALL")}
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer ${
-              selectedGodownFilter === "ALL"
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
+              effectiveGodownFilter === "ALL"
                 ? "bg-slate-900 text-white"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
@@ -147,9 +165,10 @@ export default function SharedChildAlertPanel({
               <button
                 key={godown}
                 type="button"
+                aria-pressed={effectiveGodownFilter === godown}
                 onClick={() => setSelectedGodownFilter(godown)}
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer ${
-                  selectedGodownFilter === godown
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
+                  effectiveGodownFilter === godown
                     ? "bg-slate-900 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
@@ -167,7 +186,7 @@ export default function SharedChildAlertPanel({
         </div>
       ) : (
         <div className="space-y-2.5">
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
             <table className="min-w-full divide-y divide-slate-200 text-xs">
               <thead className="bg-slate-50 text-left font-semibold text-slate-600">
                 <tr>
@@ -242,7 +261,7 @@ export default function SharedChildAlertPanel({
                           onClick={() =>
                             onJumpToCell(targetSet, ev.godown, ev.month)
                           }
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 transition-colors cursor-pointer"
                         >
                           Drill Down
                           <ArrowRight className="h-3 w-3" />
@@ -256,7 +275,7 @@ export default function SharedChildAlertPanel({
           </div>
 
           {filteredCollisions.length > 12 && (
-            <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
               <span>
                 Showing {visibleEvents.length} of {filteredCollisions.length}{" "}
                 flagged godown-months (
@@ -265,7 +284,7 @@ export default function SharedChildAlertPanel({
               <button
                 type="button"
                 onClick={() => setShowAll((prev) => !prev)}
-                className="font-semibold text-slate-800 underline underline-offset-2 hover:text-slate-950 cursor-pointer"
+                className="rounded font-semibold text-slate-800 underline underline-offset-2 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 cursor-pointer"
               >
                 {showAll
                   ? "Show top 12"

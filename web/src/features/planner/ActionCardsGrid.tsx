@@ -47,13 +47,26 @@ export default function ActionCardsGrid({
   onChangeDecisionFilter,
   decisionCounts,
 }: ActionCardsGridProps) {
+  const totalScopedCount =
+    decisionCounts.ORDER +
+    decisionCounts.HOLD +
+    decisionCounts.TRANSFER_IN +
+    decisionCounts.TRANSFER_OUT +
+    decisionCounts.WAIT;
+
+  const activeScopeLabel = lockedGodown
+    ? `${shortGodownName(lockedGodown).toUpperCase()} GODOWN (SITE-SCOPED) · MONTHLY DISPATCH`
+    : selectedGodown !== "ALL"
+    ? `${shortGodownName(selectedGodown).toUpperCase()} GODOWN · MONTHLY DISPATCH`
+    : "ACTIVE KANPUR GODOWNS · MONTHLY DISPATCH";
+
   return (
     <section aria-label="Monthly Godown Action Cards" className="space-y-5">
       {/* Clean Single-Row Section Header with Contextual Filters */}
       <div className="flex flex-col gap-4 border-b border-[#dbd7da] pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <span className="hp-mono text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
-            ACTIVE KANPUR GODOWNS · MONTHLY DISPATCH
+            {activeScopeLabel}
           </span>
           <h3 className="hp-heading mt-1 text-2xl font-extrabold text-[#14141c]">
             Godown decisions{" "}
@@ -94,7 +107,7 @@ export default function ActionCardsGrid({
             ).map((f) => {
               const count =
                 f === "ALL"
-                  ? 6
+                  ? totalScopedCount
                   : f === "TRANSFER"
                   ? decisionCounts.TRANSFER_IN + decisionCounts.TRANSFER_OUT
                   : decisionCounts[f];
@@ -103,6 +116,7 @@ export default function ActionCardsGrid({
                 <button
                   key={f}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onChangeDecisionFilter(f)}
                   className={`hp-btn-secondary hp-mono h-[34px] px-2.5 text-[10px] font-medium ${
                     active ? "is-active" : ""

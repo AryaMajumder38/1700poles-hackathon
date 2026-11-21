@@ -126,7 +126,7 @@ export default function NavbarProfileDropdown({
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         aria-label="Open global RBAC profile switcher"
-        className="flex items-center gap-2.5 rounded-full border border-slate-700 bg-slate-900 py-1 pl-1.5 pr-3 text-left transition-colors hover:border-amber-400 hover:bg-slate-800 cursor-pointer"
+        className="flex items-center gap-2.5 rounded-full border border-slate-700 bg-slate-900 py-1 pl-1.5 pr-3 text-left transition-colors hover:border-amber-400 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer"
       >
         <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-xs font-bold text-slate-950 shadow-xs">
           {isAdmin ? "HA" : getInitials(session.staffName)}
@@ -159,7 +159,7 @@ export default function NavbarProfileDropdown({
         <div
           role="menu"
           aria-label="Global RBAC user selector"
-          className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl sm:w-96"
+          className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-slate-700 bg-slate-900 text-slate-100 shadow-2xl sm:w-96"
         >
           <div className="border-b border-slate-800 bg-slate-950 px-3.5 py-2.5">
             <div className="flex items-center justify-between">
@@ -188,7 +188,7 @@ export default function NavbarProfileDropdown({
                   setSession(DEFAULT_ADMIN_SESSION);
                   setMenuOpen(false);
                 }}
-                className={`mt-0.5 flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors cursor-pointer ${
+                className={`mt-0.5 flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer ${
                   isAdmin
                     ? "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/40"
                     : "hover:bg-slate-800 text-slate-200"
@@ -264,7 +264,7 @@ export default function NavbarProfileDropdown({
                             });
                             setMenuOpen(false);
                           }}
-                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors cursor-pointer ${
+                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer ${
                             isSelected
                               ? "bg-sky-500/15 text-sky-200 ring-1 ring-sky-500/40"
                               : "hover:bg-slate-800 text-slate-200"

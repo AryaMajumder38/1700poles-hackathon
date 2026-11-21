@@ -17,6 +17,7 @@ interface TransferLogisticsPanelProps {
   activeMonth: string;
   unit: ItemUnit;
   leadTimeDays: number;
+  scopedGodown?: string | null;
 }
 
 export default function TransferLogisticsPanel({
@@ -25,6 +26,7 @@ export default function TransferLogisticsPanel({
   activeMonth,
   unit,
   leadTimeDays,
+  scopedGodown,
 }: TransferLogisticsPanelProps) {
   const [scope, setScope] = useState<"month" | "all">("month");
 
@@ -42,7 +44,14 @@ export default function TransferLogisticsPanel({
       {/* Feature Split: Copy + Compact Metrics on Left, Line Diagram on Right */}
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-5">
-          <span className="hp-ochre-tag">STAGE A · MIN-COST FLOW LP</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="hp-ochre-tag">STAGE A · MIN-COST FLOW LP</span>
+            {scopedGodown && (
+              <span className="hp-mono inline-flex items-center border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-sky-800">
+                Site-Scoped · {shortGodownName(scopedGodown)}
+              </span>
+            )}
+          </div>
           <h3 className="hp-heading text-2xl font-extrabold leading-[1.2] text-[#14141c]">
             Rebalance local yards{" "}
             <span className="hp-italic text-[29px] font-light text-[#31263b]">
@@ -50,17 +59,20 @@ export default function TransferLogisticsPanel({
             </span>
           </h3>
           <p className="text-sm font-light leading-[1.6] text-[#43394c]">
-            Solves minimum-distance transfers across the 6 Kanpur district
-            godowns (45–150 km; 1–2 day road transit) with donor horizon
-            protection before placing {leadTimeDays}-day vendor orders.
+            {scopedGodown
+              ? `Showing LP transfer routes entering or leaving ${shortGodownName(
+                  scopedGodown
+                )} (45–150 km; 1–2 day road transit) before placing ${leadTimeDays}-day vendor orders.`
+              : `Solves minimum-distance transfers across the 6 Kanpur district godowns (45–150 km; 1–2 day road transit) with donor horizon protection before placing ${leadTimeDays}-day vendor orders.`}
           </p>
 
           {/* Compact Scope Switcher */}
           <div className="inline-flex border border-[#dbd7da] bg-[#fffcfc]">
             <button
               type="button"
+              aria-pressed={scope === "month"}
               onClick={() => setScope("month")}
-              className={`hp-mono px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer ${
+              className={`hp-mono px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
                 scope === "month"
                   ? "bg-[#31263b] text-[#fffcfc]"
                   : "text-[#43394c] hover:bg-[#e9e5e8]"
@@ -70,8 +82,9 @@ export default function TransferLogisticsPanel({
             </button>
             <button
               type="button"
+              aria-pressed={scope === "all"}
               onClick={() => setScope("all")}
-              className={`hp-mono border-l border-[#dbd7da] px-3.5 py-2 text-[11px] font-medium transition-colors cursor-pointer ${
+              className={`hp-mono border-l border-[#dbd7da] px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
                 scope === "all"
                   ? "bg-[#31263b] text-[#fffcfc]"
                   : "text-[#43394c] hover:bg-[#e9e5e8]"
@@ -137,7 +150,7 @@ export default function TransferLogisticsPanel({
               <button
                 type="button"
                 onClick={() => setScope("all")}
-                className="font-medium text-[#31263b] underline decoration-[#cda0a5] underline-offset-4 cursor-pointer"
+                className="font-medium text-[#31263b] underline decoration-[#cda0a5] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer"
               >
                 View all {allItemRoutes.length} LP routes across 44 months
               </button>
@@ -145,7 +158,7 @@ export default function TransferLogisticsPanel({
           </p>
         </div>
       ) : (
-        <div className="max-h-72 overflow-y-auto border-y border-[#dbd7da] bg-[#fffcfc]">
+        <div className="max-h-72 overflow-auto border-y border-[#dbd7da] bg-[#fffcfc]">
           <table className="min-w-full border-collapse text-xs">
             <thead className="sticky top-0 border-b border-[#dbd7da] bg-[#fcf8f8] text-[#43394c]">
               <tr>

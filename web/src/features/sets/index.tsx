@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Lock } from "lucide-react";
+import { AlertTriangle, Loader2, Lock, RefreshCw } from "lucide-react";
 import { useRbacSession } from "@/features/planner/rbacBridge";
 import type {
   ActiveGodown,
@@ -13,6 +13,7 @@ import CellBottleneckInspector from "./CellBottleneckInspector";
 import ImbalanceHeatmap from "./ImbalanceHeatmap";
 import RatioModeBanner from "./RatioModeBanner";
 import SharedChildAlertPanel from "./SharedChildAlertPanel";
+import { isActiveGodown } from "./setsUtils";
 
 function pickDefaultCell(
   rows: SetImbalanceRow[],
@@ -44,15 +45,22 @@ export default function SetsView() {
   const [selectedGodown, setSelectedGodown] =
     useState<ActiveGodown>("KANPUR NAGAR");
   const [selectedMonth, setSelectedMonth] = useState<string>("2024-06");
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    setReloadNonce((n) => n + 1);
+  }
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function loadSetsData() {
       try {
         const [metaRes, setsRes] = await Promise.all([
-          fetch("/data/metadata.json"),
-          fetch("/data/sets_imbalance.json"),
+          fetch("/data/metadata.json", { signal: controller.signal }),
+          fetch("/data/sets_imbalance.json", { signal: controller.signal }),
         ]);
 
         if (!metaRes.ok || !setsRes.ok) {
@@ -66,52 +74,53 @@ export default function SetsView() {
           setsRes.json(),
         ])) as [MetadataPayload, SetImbalanceRow[]];
 
-        if (!cancelled) {
-          setMetadata(metaJson);
-          setAllRows(setsJson);
-          const defaultSet = metaJson.sets[0]?.set_no ?? "1.071";
-          setSelectedSetNo(defaultSet);
+        if (controller.signal.aborted) return;
 
-          const empiricalRows = setsJson.filter(
-            (r) => r.ratio_mode === "empirical"
-          );
-          const initialCell = pickDefaultCell(empiricalRows, defaultSet);
-          if (initialCell) {
-            setSelectedGodown(initialCell.godown);
-            setSelectedMonth(initialCell.month);
-          }
-          setLoading(false);
+        setMetadata(metaJson);
+        setAllRows(setsJson);
+        const defaultSet = metaJson.sets[0]?.set_no ?? "1.071";
+        setSelectedSetNo(defaultSet);
+
+        const empiricalRows = setsJson.filter(
+          (r) => r.ratio_mode === "empirical"
+        );
+        const initialCell = pickDefaultCell(empiricalRows, defaultSet);
+        if (initialCell) {
+          setSelectedGodown(initialCell.godown);
+          setSelectedMonth(initialCell.month);
         }
+        setError(null);
+        setLoading(false);
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Unknown error loading set imbalance data."
-          );
-          setLoading(false);
-        }
+        if (controller.signal.aborted) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unknown error loading set imbalance data."
+        );
+        setLoading(false);
       }
     }
 
     loadSetsData();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, []);
+  }, [reloadNonce]);
 
   const lockedGodown: ActiveGodown | null = useMemo(() => {
-    if (session.roleType !== "SITE_MANAGER" || !session.warehouseName) {
+    if (session.roleType !== "SITE_MANAGER") {
+      return null;
+    }
+    const warehouseName = session.warehouseName;
+    if (!isActiveGodown(warehouseName)) {
       return null;
     }
     const validGodowns = metadata?.godowns ?? [];
-    if (
-      validGodowns.length > 0 &&
-      !validGodowns.includes(session.warehouseName as ActiveGodown)
-    ) {
+    if (validGodowns.length > 0 && !validGodowns.includes(warehouseName)) {
       return null;
     }
-    return session.warehouseName as ActiveGodown;
+    return warehouseName;
   }, [session.roleType, session.warehouseName, metadata]);
 
   const visibleGodowns: ActiveGodown[] = useMemo(() => {
@@ -206,18 +215,33 @@ export default function SetsView() {
 
   if (error || !metadata) {
     return (
-      <section className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-        <div>
-          <p className="font-semibold">Unable to load Match Sets diagnostics</p>
-          <p className="mt-1 text-xs text-rose-800">{error}</p>
+      <section
+        role="alert"
+        className="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+          <div>
+            <p className="font-semibold">Unable to load Match Sets diagnostics</p>
+            <p className="mt-1 text-xs text-rose-800">
+              {error ?? "Metadata payload was unavailable."}
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-900 shadow-xs hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 cursor-pointer sm:self-center"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Retry
+        </button>
       </section>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* RBAC Site-Scoped Indicator */}
       {lockedGodown && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-950">
@@ -264,8 +288,10 @@ export default function SetsView() {
 
       {/* 4. Shared Child (MNB010174 — G.I. Nuts & Bolts) Alert Panel */}
       <SharedChildAlertPanel
+        key={lockedGodown ?? "all-godowns"}
         rowsForMode={rowsForMode}
         ratioMode={ratioMode}
+        lockedGodown={lockedGodown}
         onJumpToCell={handleJumpFromSharedAlert}
       />
     </div>

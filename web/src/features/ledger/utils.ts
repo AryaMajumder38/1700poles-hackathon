@@ -1,7 +1,22 @@
 import type { ItemUnit } from "@/types/lumino";
 
+const MONTH_SHORT_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
 export function formatQty(value: number, unit?: ItemUnit | string): string {
-  if (value === undefined || value === null || isNaN(value)) {
+  if (value === undefined || value === null || !Number.isFinite(value)) {
     return "0";
   }
 
@@ -22,6 +37,15 @@ export function formatQty(value: number, unit?: ItemUnit | string): string {
 export function formatWithUnit(value: number, unit?: ItemUnit | string): string {
   const formatted = formatQty(value, unit);
   return unit ? `${formatted} ${unit}` : formatted;
+}
+
+export function formatMonthShort(month: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!match) return month;
+  const yearShort = match[1].slice(2);
+  const monthIdx = Number(match[2]) - 1;
+  const label = MONTH_SHORT_NAMES[monthIdx];
+  return label ? `${label} '${yearShort}` : month;
 }
 
 export function exportToCsv(filename: string, headers: string[], rows: (string | number)[][]) {

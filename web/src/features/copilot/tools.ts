@@ -303,6 +303,10 @@ export const COPILOT_TOOL_DEFINITIONS: GroundedToolDefinition[] = [
   },
 ];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function executeCopilotTool(
   name: string,
   rawArgs: Record<string, unknown>
@@ -311,9 +315,23 @@ export function executeCopilotTool(
   const months = ds.metadata.date_range.months;
 
   if (name === "get_godown_stock") {
+    const itemQuery =
+      typeof rawArgs.item_query === "string" ? rawArgs.item_query : undefined;
     const item =
-      resolveItem(String(rawArgs.item_query ?? ""), ds.metadata.items) ??
-      ds.metadata.items.find((i) => i.item_code === "MPO010014")!;
+      resolveItem(itemQuery, ds.metadata.items) ??
+      ds.metadata.items.find((i) => i.item_code === "MPO010014") ??
+      ds.metadata.items[0] ??
+      null;
+    if (!item) {
+      return {
+        data: null,
+        trace: {
+          tool: name,
+          args: { item: itemQuery ?? "MPO010014" },
+          summary: "No tracked items available",
+        },
+      };
+    }
     const godown = resolveGodown(
       typeof rawArgs.godown === "string" ? rawArgs.godown : undefined
     );
@@ -399,9 +417,23 @@ export function executeCopilotTool(
   }
 
   if (name === "get_planner_decisions") {
+    const itemQuery =
+      typeof rawArgs.item_query === "string" ? rawArgs.item_query : undefined;
     const item =
-      resolveItem(String(rawArgs.item_query ?? ""), ds.metadata.items) ??
-      ds.metadata.items.find((i) => i.item_code === "MPO010014")!;
+      resolveItem(itemQuery, ds.metadata.items) ??
+      ds.metadata.items.find((i) => i.item_code === "MPO010014") ??
+      ds.metadata.items[0] ??
+      null;
+    if (!item) {
+      return {
+        data: null,
+        trace: {
+          tool: name,
+          args: { item: itemQuery ?? "MPO010014" },
+          summary: "No tracked items available",
+        },
+      };
+    }
     const godown = resolveGodown(
       typeof rawArgs.godown === "string" ? rawArgs.godown : undefined
     );
@@ -585,12 +617,14 @@ export function executeCopilotTool(
       unit: string;
     } | null = null;
     if (worst && worst.bottleneck_item_code) {
+      const targetWorst = worst;
+      const bottleneckCode = worst.bottleneck_item_code;
       const sameMonthRows = ds.ledger
         .filter(
           (l) =>
-            l.item_code === worst!.bottleneck_item_code &&
-            l.month === worst!.month &&
-            l.godown !== worst!.godown &&
+            l.item_code === bottleneckCode &&
+            l.month === targetWorst.month &&
+            l.godown !== targetWorst.godown &&
             l.closing_stock > 0
         )
         .sort((a, b) => b.closing_stock - a.closing_stock);
@@ -770,6 +804,13 @@ export function runLocalGroundedFallback(userMessage: string): {
       ratio_mode: q.includes("bom") ? "bom" : "empirical",
     });
     traces.push(res.trace);
+    if (!isRecord(res.data) || !Array.isArray(res.data.top_5_events)) {
+      return {
+        reply: "No shared bolt contention data is available for that filter.",
+        toolTraces: traces,
+        draftMemo: null,
+      };
+    }
     const d = res.data as {
       total_multi_set_collisions: number;
       total_flagged_events: number;
@@ -812,6 +853,13 @@ export function runLocalGroundedFallback(userMessage: string): {
       ratio_mode: /\bbom\b/.test(q) ? "bom" : "empirical",
     });
     traces.push(res.trace);
+    if (!isRecord(res.data) || typeof res.data.set_no !== "string") {
+      return {
+        reply: "No kit imbalance data is available for that filter.",
+        toolTraces: traces,
+        draftMemo: null,
+      };
+    }
     const d = res.data as {
       set_no: string;
       ratio_mode: string;
@@ -896,7 +944,17 @@ export function runLocalGroundedFallback(userMessage: string): {
     });
     traces.push(res.trace);
     if (item) {
-      const bt = res.data as BacktestComparison;
+      const bt =
+        isRecord(res.data) && typeof res.data.item_code === "string"
+          ? (res.data as unknown as BacktestComparison)
+          : null;
+      if (!bt) {
+        return {
+          reply: `No backtest KPI summary was found for **${item.item_code}** (${item.item_name}).`,
+          toolTraces: traces,
+          draftMemo: null,
+        };
+      }
       return {
         reply: [
           `**"The Bar" Backtest — ${bt.item_code} (${bt.item_name}, ${bt.unit})**`,
@@ -904,6 +962,13 @@ export function runLocalGroundedFallback(userMessage: string): {
           `- **Peak Idle Stock:** ${bt.actual_peak_idle.toLocaleString("en-IN")} → **${bt.simulated_peak_idle.toLocaleString("en-IN")} ${bt.unit}**.`,
           `- **LP Transfers Recommended:** ${bt.total_transfers_recommended} | **Stockout Months:** Actual ${bt.actual_stockout_months} vs Simulated ${bt.simulated_stockout_months}.`,
         ].join("\n"),
+        toolTraces: traces,
+        draftMemo: null,
+      };
+    }
+    if (!isRecord(res.data) || typeof res.data.total_skus !== "number") {
+      return {
+        reply: "Portfolio backtest summary data is currently unavailable.",
         toolTraces: traces,
         draftMemo: null,
       };
@@ -934,6 +999,17 @@ export function runLocalGroundedFallback(userMessage: string): {
       month: month ?? undefined,
     });
     traces.push(res.trace);
+    if (
+      !isRecord(res.data) ||
+      !Array.isArray(res.data.transfers_in_month) ||
+      !Array.isArray(res.data.godown_actions)
+    ) {
+      return {
+        reply: "No planner decisions matched that item and filter.",
+        toolTraces: traces,
+        draftMemo: null,
+      };
+    }
     const d = res.data as {
       item_code: string;
       item_name: string;
@@ -989,6 +1065,17 @@ export function runLocalGroundedFallback(userMessage: string): {
     month: month ?? undefined,
   });
   traces.push(res.trace);
+  if (
+    !isRecord(res.data) ||
+    !isRecord(res.data.project_totals) ||
+    !Array.isArray(res.data.godown_breakdown)
+  ) {
+    return {
+      reply: "No verified stock snapshot is available for that item.",
+      toolTraces: traces,
+      draftMemo: null,
+    };
+  }
   const d = res.data as {
     item_code: string;
     item_name: string;
@@ -998,9 +1085,9 @@ export function runLocalGroundedFallback(userMessage: string): {
       total_receipts: number;
       total_consumption: number;
       peak_godown_idle: number;
-      peak_godown_month: string;
+      peak_godown_month: string | null;
       peak_contractor_idle: number;
-      peak_contractor_month: string;
+      peak_contractor_month: string | null;
     };
     godown_breakdown: { godown: string; closing_stock: number }[];
   };
@@ -1009,7 +1096,7 @@ export function runLocalGroundedFallback(userMessage: string): {
     reply: [
       `**Verified Stock Snapshot — ${d.item_code} (${d.item_name}, ${d.unit})**`,
       `- **44-Month Total:** ${d.project_totals.total_receipts.toLocaleString("en-IN")} ${d.unit} received vs **${d.project_totals.total_consumption.toLocaleString("en-IN")} ${d.unit}** consumed on site.`,
-      `- **Peak Godown Idle:** ${d.project_totals.peak_godown_idle.toLocaleString("en-IN")} ${d.unit} (${d.project_totals.peak_godown_month}) | **Peak Contractor Hoarding:** ${d.project_totals.peak_contractor_idle.toLocaleString("en-IN")} ${d.unit} (${d.project_totals.peak_contractor_month}).`,
+      `- **Peak Godown Idle:** ${d.project_totals.peak_godown_idle.toLocaleString("en-IN")} ${d.unit} (${d.project_totals.peak_godown_month ?? "N/A"}) | **Peak Contractor Hoarding:** ${d.project_totals.peak_contractor_idle.toLocaleString("en-IN")} ${d.unit} (${d.project_totals.peak_contractor_month ?? "N/A"}).`,
       `- **Godown Closing Stock (${d.selected_month}):** ` +
         d.godown_breakdown
           .map(

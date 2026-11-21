@@ -1,14 +1,18 @@
 "use client";
 
 import { Check } from "lucide-react";
+import type { SimulationAction } from "@/types/lumino";
 import type { PlannerBacktestComparison } from "./plannerTypes";
-import { formatPlainNumber, formatQty } from "./plannerTypes";
+import { formatPlainNumber, formatQty, shortGodownName } from "./plannerTypes";
 
 interface TheBarScorecardProps {
   selected: PlannerBacktestComparison;
   allSummaries: PlannerBacktestComparison[];
   onSelectItem: (itemCode: string) => void;
   showAllMatrix: boolean;
+  scopedGodown?: string | null;
+  scopedMonthAction?: SimulationAction | null;
+  scopedTransferCount?: number;
 }
 
 export default function TheBarScorecard({
@@ -16,6 +20,9 @@ export default function TheBarScorecard({
   allSummaries,
   onSelectItem,
   showAllMatrix,
+  scopedGodown,
+  scopedMonthAction,
+  scopedTransferCount,
 }: TheBarScorecardProps) {
   const peakReductionPct =
     selected.actual_peak_idle > 0
@@ -37,11 +44,45 @@ export default function TheBarScorecard({
       className="relative border-y border-[#dbd7da] bg-[#fffcfc]"
     >
       {/* Centered 10px uppercase mono proof label interrupting the top boundary */}
-      <div className="pointer-events-none flex justify-center">
-        <span className="hp-mono -translate-y-1/2 bg-[#fffcfc] px-3 text-[10px] uppercase tracking-[0.0833em] text-[#43394c]">
-          THE BAR · 44-MONTH ZERO-LOOKAHEAD PROOF · {selected.item_code} ({selected.unit})
+      <div className="pointer-events-none flex justify-center px-3">
+        <span className="hp-mono max-w-full truncate -translate-y-1/2 bg-[#fffcfc] px-3 text-[10px] uppercase tracking-[0.0833em] text-[#43394c]">
+          THE BAR · 44-MONTH PROOF · {selected.item_code} ({selected.unit})
+          {scopedGodown ? " · PROJECT-WIDE (6 GODOWNS)" : ""}
         </span>
       </div>
+
+      {/* Site-scoped live KPI strip when a Site Manager is active */}
+      {scopedGodown && scopedMonthAction && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e9e5e8] bg-sky-50/70 px-5 py-2.5 text-xs text-sky-950">
+          <span className="hp-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-sky-800">
+            SITE SNAPSHOT · {shortGodownName(scopedGodown)} ({scopedMonthAction.month})
+          </span>
+          <div className="hp-mono flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tabular-nums">
+            <span>
+              On Hand:{" "}
+              <strong>
+                {formatQty(scopedMonthAction.godown_on_hand, scopedMonthAction.unit)}
+              </strong>
+            </span>
+            <span>
+              Demand/mo:{" "}
+              <strong>
+                {formatQty(
+                  scopedMonthAction.projected_monthly_demand,
+                  scopedMonthAction.unit
+                )}
+              </strong>
+            </span>
+            <span>
+              Site LP Routes (44 mo):{" "}
+              <strong>{scopedTransferCount ?? 0}</strong>
+            </span>
+            <span className="text-[10px] text-sky-700">
+              Below KPIs are project-wide (6 godowns)
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Continuous 4-Column Ruled Proof Strip — Metrics First + Concise Labels */}
       <div className="grid grid-cols-1 divide-y divide-[#e9e5e8] sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">
@@ -169,8 +210,15 @@ export default function TheBarScorecard({
                   return (
                     <tr
                       key={row.item_code}
+                      tabIndex={0}
                       onClick={() => onSelectItem(row.item_code)}
-                      className={`cursor-pointer transition-colors ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelectItem(row.item_code);
+                        }
+                      }}
+                      className={`cursor-pointer transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] ${
                         isSelected
                           ? "hp-stipple bg-[#fcf8f8] font-medium"
                           : "hover:bg-[#fcf8f8]"

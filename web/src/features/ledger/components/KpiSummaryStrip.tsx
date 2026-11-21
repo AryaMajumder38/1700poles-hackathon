@@ -13,7 +13,6 @@ import { formatQty, formatWithUnit } from "../utils";
 
 interface KpiSummaryStripProps {
   unit: ItemUnit;
-  itemCode: string;
   godownName: string;
   totalReceipts: number;
   totalIssues: number;
@@ -42,14 +41,19 @@ export function KpiSummaryStrip({
   peakContractorMonth,
 }: KpiSummaryStripProps) {
   const netIssues = totalIssues - totalReturns;
+  const inflowLabel = `Inflow to ${godownName === "ALL" ? "All Godowns" : godownName}`;
+  const issuesBreakdown = `Issues ${formatWithUnit(totalIssues, unit)} − Returns ${formatWithUnit(totalReturns, unit)}`;
+  const peakContractorLabel = peakContractorMonth
+    ? `Peak ${formatWithUnit(peakContractorIdleStock, unit)} (${peakContractorMonth})`
+    : `Peak ${formatWithUnit(peakContractorIdleStock, unit)}`;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {/* 1. Total Inflow / Receipts */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
           <span>Total Receipts</span>
-          <ArrowDownToLine className="h-4 w-4 text-emerald-600" />
+          <ArrowDownToLine className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tabular-nums text-slate-900">
@@ -57,16 +61,16 @@ export function KpiSummaryStrip({
           </span>
           <span className="text-xs font-semibold text-slate-500">{unit}</span>
         </div>
-        <p className="mt-1 text-[11px] text-slate-500 truncate">
-          Inflow to {godownName === "ALL" ? "All Godowns" : godownName}
+        <p className="mt-1 truncate text-[11px] text-slate-500" title={inflowLabel}>
+          {inflowLabel}
         </p>
       </div>
 
       {/* 2. Net Issues to Contractors */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
           <span>Net Issued to Contractors</span>
-          <Truck className="h-4 w-4 text-amber-600" />
+          <Truck className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tabular-nums text-slate-900">
@@ -74,16 +78,16 @@ export function KpiSummaryStrip({
           </span>
           <span className="text-xs font-semibold text-slate-500">{unit}</span>
         </div>
-        <p className="mt-1 text-[11px] text-slate-500 truncate">
-          Issues ({formatQty(totalIssues, unit)}) - Returns ({formatQty(totalReturns, unit)})
+        <p className="mt-1 truncate text-[11px] text-slate-500" title={issuesBreakdown}>
+          {issuesBreakdown}
         </p>
       </div>
 
       {/* 3. Peak Godown Stock */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
           <span>Peak Godown Stock</span>
-          <TrendingUp className="h-4 w-4 text-purple-600" />
+          <TrendingUp className="h-4 w-4 shrink-0 text-purple-600" aria-hidden="true" />
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tabular-nums text-slate-900">
@@ -91,16 +95,16 @@ export function KpiSummaryStrip({
           </span>
           <span className="text-xs font-semibold text-slate-500">{unit}</span>
         </div>
-        <p className="mt-1 text-[11px] font-medium text-purple-700 font-mono">
+        <p className="mt-1 font-mono text-[11px] font-medium text-purple-700">
           Peak in {peakGodownMonth || "—"}
         </p>
       </div>
 
       {/* 4. Current/Ending Godown Stock */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
           <span>Closing Godown Stock</span>
-          <Warehouse className="h-4 w-4 text-blue-600" />
+          <Warehouse className="h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tabular-nums text-slate-900">
@@ -114,15 +118,15 @@ export function KpiSummaryStrip({
       </div>
 
       {/* 5. Project-Wide Total Consumption */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-          <span className="flex items-center gap-1">
-            Total Consumption
-            <span className="rounded bg-slate-100 px-1 py-0.2 text-[9px] font-semibold text-slate-600">
+      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
+          <span className="flex flex-wrap items-center gap-1">
+            <span>Total Consumption</span>
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600">
               Project
             </span>
           </span>
-          <Hammer className="h-4 w-4 text-indigo-600" />
+          <Hammer className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden="true" />
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tabular-nums text-slate-900">
@@ -136,15 +140,15 @@ export function KpiSummaryStrip({
       </div>
 
       {/* 6. Project-Wide Contractor Idle Stock */}
-      <div className="rounded-xl border border-amber-300 bg-amber-50/50 p-4 shadow-xs">
-        <div className="flex items-center justify-between text-xs font-medium text-amber-900">
-          <span className="flex items-center gap-1 font-semibold">
-            Contractor Idle Stock
-            <span className="rounded bg-amber-200 px-1 py-0.2 text-[9px] font-bold text-amber-900">
+      <div className="min-w-0 rounded-xl border border-amber-300 bg-amber-50/50 p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-2 text-xs font-medium text-amber-900">
+          <span className="flex flex-wrap items-center gap-1 font-semibold">
+            <span>Contractor Idle Stock</span>
+            <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-900">
               Field Idle
             </span>
           </span>
-          <Clock className="h-4 w-4 text-amber-700" />
+          <Clock className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
         </div>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tabular-nums text-amber-950">
@@ -152,8 +156,11 @@ export function KpiSummaryStrip({
           </span>
           <span className="text-xs font-semibold text-amber-800">{unit}</span>
         </div>
-        <p className="mt-1 text-[11px] font-medium text-amber-800 truncate">
-          Peak {formatWithUnit(peakContractorIdleStock, unit)} ({peakContractorMonth})
+        <p
+          className="mt-1 truncate text-[11px] font-medium text-amber-800"
+          title={peakContractorLabel}
+        >
+          {peakContractorLabel}
         </p>
       </div>
     </div>

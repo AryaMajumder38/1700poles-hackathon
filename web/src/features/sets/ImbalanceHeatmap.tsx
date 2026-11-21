@@ -151,10 +151,19 @@ export default function ImbalanceHeatmap({
     return groups;
   }, [months]);
 
+  const monthGridStyle = useMemo(
+    () => ({
+      gridTemplateColumns: `repeat(${Math.max(months.length, 1)}, minmax(0, 1fr))`,
+    }),
+    [months.length]
+  );
+
+  const heatmapMinWidthPx = Math.max(640, 160 + months.length * 18);
+
   return (
     <section
       aria-label="Set Imbalance Heatmap"
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-5"
+      className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-5 min-w-0"
     >
       {/* Set Selector Tabs */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -172,8 +181,9 @@ export default function ImbalanceHeatmap({
               <button
                 key={s.set_no}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => onSelectSet(s.set_no)}
-                className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                className={`rounded-xl border p-3 text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
                   isSelected
                     ? "border-slate-900 bg-slate-900 text-white shadow-xs"
                     : "border-slate-200 bg-slate-50/70 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
@@ -260,7 +270,7 @@ export default function ImbalanceHeatmap({
                 onClick={() =>
                   onSelectCell(worstCell.godown, worstCell.month, true)
                 }
-                className="mt-0.5 text-[11px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-950 cursor-pointer"
+                className="mt-0.5 rounded text-[11px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 cursor-pointer"
               >
                 Jump to {shortGodown(worstCell.godown)} ({worstCell.month})
               </button>
@@ -319,8 +329,11 @@ export default function ImbalanceHeatmap({
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <div className="min-w-[920px] bg-white p-3">
+        <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
+          <div
+            style={{ minWidth: `${heatmapMinWidthPx}px` }}
+            className="bg-white p-3"
+          >
             {/* Year Header Row */}
             <div className="grid grid-cols-[128px_1fr] items-center gap-2 pb-1">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
@@ -342,7 +355,7 @@ export default function ImbalanceHeatmap({
             {/* Month Index Row */}
             <div className="grid grid-cols-[128px_1fr] items-center gap-2 pb-2">
               <div />
-              <div className="grid grid-cols-[repeat(44,minmax(0,1fr))] gap-1">
+              <div className="grid gap-1" style={monthGridStyle}>
                 {months.map((m) => {
                   const mm = m.slice(5, 7);
                   const isWindDown = m >= WIND_DOWN_START;
@@ -369,7 +382,7 @@ export default function ImbalanceHeatmap({
               </div>
             </div>
 
-            {/* 6 Godown Rows */}
+            {/* Active Godown Rows */}
             <div className="space-y-1.5">
               {godowns.map((godown) => {
                 const isSelectedRow = godown === selectedGodown;
@@ -387,7 +400,7 @@ export default function ImbalanceHeatmap({
                       {shortGodown(godown)}
                     </div>
 
-                    <div className="grid grid-cols-[repeat(44,minmax(0,1fr))] gap-1">
+                    <div className="grid gap-1" style={monthGridStyle}>
                       {months.map((month) => {
                         const row = cellMap.get(`${godown}__${month}`);
                         const status: CellVisualStatus = row
@@ -421,10 +434,11 @@ export default function ImbalanceHeatmap({
                           <button
                             key={month}
                             type="button"
+                            aria-pressed={isSelected}
                             onClick={() => onSelectCell(godown, month)}
                             title={tooltip}
                             aria-label={`${shortGodown(godown)} ${month} ${status}`}
-                            className={`h-7 w-full rounded-[3px] transition-transform cursor-pointer ${
+                            className={`h-7 w-full rounded-[3px] transition-transform cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1 ${
                               CELL_COLORS[status]
                             } ${
                               isSelected
@@ -445,7 +459,7 @@ export default function ImbalanceHeatmap({
             </div>
 
             {/* Footer note on wind-down phase */}
-            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
                 Months{" "}
