@@ -387,6 +387,7 @@ export function saveOpsState(state: OpsStoreState): void {
   } catch {
     // Ignore storage quota issues in restricted browsers
   }
+  window.dispatchEvent(new CustomEvent("lumino:ops-change"));
 }
 
 export function getAllCatalogMaterials(

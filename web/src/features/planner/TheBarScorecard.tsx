@@ -43,39 +43,38 @@ export default function TheBarScorecard({
         </span>
       </div>
 
-      {/* Continuous 4-Column Ruled Proof Strip (Hex Proof Card anatomy) */}
+      {/* Continuous 4-Column Ruled Proof Strip — Metrics First + Concise Labels */}
       <div className="grid grid-cols-1 divide-y divide-[#e9e5e8] sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">
         {/* Cell 1 */}
-        <div className="flex flex-col justify-between gap-2.5 border-b border-[#e9e5e8] px-6 pt-3 pb-7 sm:border-r xl:border-b-0">
+        <div className="flex flex-col justify-between gap-1.5 border-b border-[#e9e5e8] px-5 pt-2.5 pb-5 sm:border-r xl:border-b-0">
           <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
-              01 · Avg Godown Idle
+            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
+              Idle Reduction
             </span>
             {isPositiveReduction && (
               <Check className="h-3.5 w-3.5 text-[#2c7a62]" />
             )}
           </div>
           <div
-            className="hp-heading text-[32px] font-extrabold leading-none tabular-nums"
+            className="hp-heading text-[28px] font-extrabold leading-none tabular-nums"
             style={{ color: isPositiveReduction ? "#2c7a62" : "#a98529" }}
           >
             {isPositiveReduction ? "−" : "+"}
             {Math.abs(selected.idle_reduction_pct).toFixed(1)}%
           </div>
-          <p className="text-[13px] font-light text-[#43394c] tabular-nums">
-            {formatQty(selected.actual_avg_idle, selected.unit)} actual →{" "}
+          <p className="text-xs font-light text-[#43394c] tabular-nums">
+            Avg yard stock: {formatQty(selected.actual_avg_idle, selected.unit)} →{" "}
             <span className="font-medium text-[#14141c]">
               {formatQty(selected.simulated_avg_idle, selected.unit)}
-            </span>{" "}
-            plan
+            </span>
           </p>
         </div>
 
         {/* Cell 2 */}
-        <div className="flex flex-col justify-between gap-2.5 border-b border-[#e9e5e8] px-6 pt-3 pb-7 xl:border-r xl:border-b-0">
+        <div className="flex flex-col justify-between gap-1.5 border-b border-[#e9e5e8] px-5 pt-2.5 pb-5 xl:border-r xl:border-b-0">
           <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
-              02 · Peak Yard Pileup
+            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
+              Peak Stock
             </span>
             <span className="hp-mono text-[10px] text-[#43394c]">
               {peakReductionPct >= 0
@@ -83,54 +82,49 @@ export default function TheBarScorecard({
                 : `+${Math.abs(peakReductionPct).toFixed(1)}%`}
             </span>
           </div>
-          <div className="hp-heading text-[30px] font-extrabold leading-none tabular-nums text-[#14141c]">
+          <div className="hp-heading text-[28px] font-extrabold leading-none tabular-nums text-[#14141c]">
             {formatQty(selected.simulated_peak_idle, selected.unit)}
           </div>
-          <p className="text-[13px] font-light text-[#43394c] tabular-nums">
-            vs {formatQty(selected.actual_peak_idle, selected.unit)} peak ·{" "}
-            {formatQty(selected.simulated_total_ordered, selected.unit)} ordered
+          <p className="text-xs font-light text-[#43394c] tabular-nums">
+            Worst-month pileup (was {formatQty(selected.actual_peak_idle, selected.unit)})
           </p>
         </div>
 
         {/* Cell 3 */}
-        <div className="flex flex-col justify-between gap-2.5 border-b border-[#e9e5e8] px-6 pt-3 pb-7 sm:border-r sm:border-b-0">
+        <div className="flex flex-col justify-between gap-1.5 border-b border-[#e9e5e8] px-5 pt-2.5 pb-5 sm:border-r sm:border-b-0">
           <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
-              03 · Unmasked Shortages
+            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
+              Shortages
             </span>
             <span className="hp-mono text-[10px] text-[#b43c57]">
               {shortageRate.toFixed(1)}% vol
             </span>
           </div>
-          <div className="hp-heading text-[30px] font-extrabold leading-none tabular-nums text-[#b43c57]">
+          <div className="hp-heading text-[28px] font-extrabold leading-none tabular-nums text-[#b43c57]">
             {selected.simulated_stockout_months}
-            <span className="text-lg font-semibold text-[#89828d]"> / 44 mo</span>
+            <span className="text-base font-semibold text-[#89828d]"> / 44 mo</span>
           </div>
-          <p className="text-[13px] font-light text-[#43394c] tabular-nums">
-            {formatQty(shortageQty, selected.unit)} unfilled ·{" "}
-            {selected.actual_stockout_months} actual stockouts
+          <p className="text-xs font-light text-[#43394c] tabular-nums">
+            Unmet demand ({formatQty(shortageQty, selected.unit)})
           </p>
         </div>
 
         {/* Cell 4 */}
-        <div className="flex flex-col justify-between gap-2.5 px-6 pt-3 pb-7">
+        <div className="flex flex-col justify-between gap-1.5 px-5 pt-2.5 pb-5">
           <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
-              04 · Stage A LP Routes
+            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
+              Transfers
             </span>
-            <span className="hp-mono text-[10px] text-[#43394c]">
-              1–2d transit
-            </span>
-          </div>
-          <div className="hp-heading text-[30px] font-extrabold leading-none tabular-nums text-[#31263b]">
-            {selected.total_transfers_recommended}
-            <span className="text-lg font-semibold text-[#89828d]"> routes</span>
-          </div>
-          <p className="text-[13px] font-light text-[#43394c] tabular-nums">
-            {formatQty(transferQty, selected.unit)} shifted ·{" "}
-            <span className="font-medium text-[#2c7a62]">
+            <span className="hp-mono text-[10px] text-[#2c7a62]">
               {formatPlainNumber(kmSaved)} km saved
             </span>
+          </div>
+          <div className="hp-heading text-[28px] font-extrabold leading-none tabular-nums text-[#31263b]">
+            {selected.total_transfers_recommended}
+            <span className="text-base font-semibold text-[#89828d]"> routes</span>
+          </div>
+          <p className="text-xs font-light text-[#43394c] tabular-nums">
+            Inter-yard rebalancing ({formatQty(transferQty, selected.unit)})
           </p>
         </div>
       </div>

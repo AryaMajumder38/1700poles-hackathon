@@ -38,6 +38,7 @@ interface RoleAccessBarProps {
   pendingConsentByWarehouse: Record<string, number>;
   activeDeliveriesCount: number;
   onResetDemo: () => void;
+  hideProfileSwitcher?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -61,6 +62,7 @@ export default function RoleAccessBar({
   pendingConsentByWarehouse,
   activeDeliveriesCount,
   onResetDemo,
+  hideProfileSwitcher = false,
 }: RoleAccessBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -202,6 +204,7 @@ export default function RoleAccessBar({
           </button>
 
           {/* Clickable Profile Icon Button with Scrollable Role Switcher Window */}
+          {!hideProfileSwitcher && (
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
@@ -410,6 +413,7 @@ export default function RoleAccessBar({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
