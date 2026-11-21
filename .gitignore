@@ -1,9 +1,10 @@
 # Dependencies
 node_modules/
 
-# Next.js build outputs
+# Next.js build outputs & auto-generated boilerplate
 web/.next/
 web/out/
+web/AGENTS.md
 
 # Python virtual environments & caches
 pipeline/venv/
