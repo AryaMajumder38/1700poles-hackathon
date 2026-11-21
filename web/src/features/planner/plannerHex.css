@@ -181,12 +181,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 42px;
-  padding: 0 18px;
+  height: 38px;
+  padding: 0 16px;
   border-radius: 1px;
   border: 1px solid transparent;
   background:
-    linear-gradient(135deg, rgba(245, 192, 192, 0.15), rgba(255, 252, 252, 0.98)) padding-box,
+    linear-gradient(to bottom, #fffcfc, #fcf6f7) padding-box,
     linear-gradient(45deg, #cda0a5, #31263b) border-box;
   color: #14141c;
   font-size: 13px;
@@ -329,7 +329,7 @@
 
 /* Clean 1px native select */
 .hex-planner .hp-select {
-  height: 42px;
+  height: 38px;
   width: 100%;
   border-radius: 1px;
   border: 1px solid var(--hp-rule);
