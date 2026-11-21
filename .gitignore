@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Next.js build outputs
+web/.next/
+web/out/
+
+# Python virtual environments & caches
+pipeline/venv/
+pipeline/.venv/
+__pycache__/
+*.pyc
+
+# OS & Secrets
+.DS_Store
+.env*
