@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2, Lock } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Compass,
+  Loader2,
+  Lock,
+  Route,
+} from "lucide-react";
 import type {
   ActiveGodown,
   MetadataPayload,
@@ -10,8 +18,16 @@ import type {
 } from "@/types/lumino";
 import ActionCardsGrid from "./ActionCardsGrid";
 import AdminMasterDataPanel from "./AdminMasterDataPanel";
+import {
+  CornerMarks,
+  FadingRulesDivider,
+  HexFontLoader,
+  PrimaryPlateButton,
+  SparkleGlyph,
+} from "./HexPrimitives";
 import IdleStockChart from "./IdleStockChart";
 import MonthScrubber, { type DecisionFilter } from "./MonthScrubber";
+import "./plannerHex.css";
 import RequisitionWorkflowPanel from "./RequisitionWorkflowPanel";
 import RoleAccessBar, { type PlannerSubTab } from "./RoleAccessBar";
 import TheBarScorecard from "./TheBarScorecard";
@@ -45,20 +61,21 @@ export default function PlannerView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // RBAC & Sub-view state (instant role switcher, zero login wall)
+  // Instant RBAC Profile Switcher & Sub-View State (No login wall)
   const [roleType, setRoleType] = useState<UserRoleType>("ADMIN_HEAD");
   const [activeStaffId, setActiveStaffId] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<PlannerSubTab>("replay");
 
-  // Causal Replay controls
+  // Causal Replay State
   const [selectedItemCode, setSelectedItemCode] =
     useState<string>(FLAGSHIP_ITEM_CODE);
-  const [monthIndex, setMonthIndex] = useState<number>(8); // 2023-11
+  const [monthIndex, setMonthIndex] = useState<number>(8); // 2023-11: rich transfer + order activity
   const [selectedGodown, setSelectedGodown] = useState<"ALL" | ActiveGodown>(
     "ALL"
   );
   const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>("ALL");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAllMatrix, setShowAllMatrix] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +126,6 @@ export default function PlannerView() {
     };
   }, []);
 
-  // Helper to update and persist opsState cleanly
   const updateOps = (updater: (prev: OpsStoreState) => OpsStoreState) => {
     setOpsState((prev) => {
       if (!prev) return prev;
@@ -124,7 +140,6 @@ export default function PlannerView() {
     [metadata]
   );
 
-  // Playback timer for month-by-month causal replay
   useEffect(() => {
     if (!isPlaying || months.length === 0) return;
     const timer = window.setInterval(() => {
@@ -141,7 +156,7 @@ export default function PlannerView() {
 
   const activeMonth = months[monthIndex] ?? "2023-03";
 
-  // Active RBAC staff & assigned site
+  // Active RBAC staff & assigned warehouse
   const activeStaff = useMemo(() => {
     if (roleType === "ADMIN_HEAD" || !opsState || !activeStaffId) return null;
     return opsState.staff.find((s) => s.staff_id === activeStaffId) ?? null;
@@ -177,7 +192,7 @@ export default function PlannerView() {
   }, [summaries, selectedItemCode]);
 
   // Apply live operational stock adjustments from approved transfers & deliveries
-  const adjustedItemActions = useMemo(() => {
+  const itemActions = useMemo(() => {
     const base = actions.filter((a) => a.item_code === selectedItemCode);
     if (!opsState) return base;
     return base.map((a) => {
@@ -186,23 +201,24 @@ export default function PlannerView() {
       if (adj === 0) return a;
       return {
         ...a,
-        godown_on_hand: Math.max(0, Number((a.godown_on_hand + adj).toFixed(3))),
+        godown_on_hand: Math.max(
+          0,
+          Number((a.godown_on_hand + adj).toFixed(3))
+        ),
       };
     });
   }, [actions, selectedItemCode, opsState]);
 
   const monthActionsAllGodowns = useMemo(
-    () => adjustedItemActions.filter((a) => a.month === activeMonth),
-    [adjustedItemActions, activeMonth]
+    () => itemActions.filter((a) => a.month === activeMonth),
+    [itemActions, activeMonth]
   );
 
-  // Latest active-month actions across all 16 items (for live LP donor recommendation in Workflow tab)
   const activeMonthAllItemsActions = useMemo(
     () => actions.filter((a) => a.month === activeMonth),
     [actions, activeMonth]
   );
 
-  // Scope visible actions by RBAC: Site Managers see ONLY their assigned site
   const rbacScopedMonthActions = useMemo(() => {
     if (!lockedGodownName) return monthActionsAllGodowns;
     return monthActionsAllGodowns.filter((a) => a.godown === lockedGodownName);
@@ -261,15 +277,15 @@ export default function PlannerView() {
   }, [monthActionsAllGodowns, lockedGodownName]);
 
   const allItemTransferRoutes = useMemo(() => {
-    const routes = collectTransfersFromActions(adjustedItemActions);
+    const routes = collectTransfersFromActions(itemActions);
     if (!lockedGodownName) return routes;
     return routes.filter(
       (r) =>
         r.from_godown === lockedGodownName || r.to_godown === lockedGodownName
     );
-  }, [adjustedItemActions, lockedGodownName]);
+  }, [itemActions, lockedGodownName]);
 
-  // Notification counts for RoleAccessBar
+  // Notification counts for RoleAccessBar & Profile Dropdown
   const pendingHeadCount = useMemo(
     () =>
       opsState
@@ -290,6 +306,17 @@ export default function PlannerView() {
         r.donor_warehouse_id === activeStaffWarehouse.warehouse_id
     ).length;
   }, [opsState, activeStaffWarehouse]);
+
+  const pendingConsentByWarehouse = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!opsState) return counts;
+    for (const r of opsState.requisitions) {
+      if (r.status === "PENDING_DONOR_CONSENT" && r.donor_warehouse_id) {
+        counts[r.donor_warehouse_id] = (counts[r.donor_warehouse_id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [opsState]);
 
   const activeDeliveriesCount = useMemo(
     () =>
@@ -355,7 +382,7 @@ export default function PlannerView() {
     if (!wh || !mat) return;
 
     const today = new Date().toISOString().slice(0, 10);
-    const requesterName = activeStaff?.name ?? "Admin (Head of Projects)";
+    const requesterName = activeStaff?.name ?? "Head Admin";
     const requesterId = activeStaff?.staff_id ?? "ADMIN-HEAD";
 
     updateOps((prev) => ({
@@ -617,32 +644,51 @@ export default function PlannerView() {
     }
   };
 
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white p-12 text-sm text-slate-600 shadow-xs">
-        <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
-        Loading 44-month causal replay &amp; LP logistics simulation...
+      <div className="hex-planner p-14">
+        <HexFontLoader />
+        <div className="hp-noise" />
+        <div className="relative z-10 flex items-center justify-center gap-3 text-sm font-light text-[#43394c]">
+          <Loader2 className="h-4 w-4 animate-spin text-[#a98529]" />
+          <span className="hp-mono text-xs">
+            Loading 44-month causal replay &amp; Stage A LP simulation...
+          </span>
+        </div>
       </div>
     );
   }
 
   if (error || !metadata || !selectedItem || !selectedSummary || !opsState) {
     return (
-      <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-        <div>
-          <div className="font-semibold">Unable to load Planner simulation</div>
-          <p className="mt-1 text-xs text-rose-700">
-            {error ?? "Missing pre-aggregated JSON payloads in /public/data/."}
-          </p>
+      <div className="hex-planner p-8">
+        <HexFontLoader />
+        <div className="hp-noise" />
+        <div className="relative z-10 flex items-start gap-3 border border-[#b43c57]/35 bg-[#fcf8f8] p-5 text-sm text-[#b43c57]">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <div className="hp-heading font-bold text-[#14141c]">
+              Unable to load Planner simulation
+            </div>
+            <p className="mt-1 text-xs font-light text-[#43394c]">
+              {error ?? "Missing pre-aggregated JSON payloads in /public/data/."}
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Persistent RBAC Role Switcher & Operations Navigation */}
+    <div className="space-y-5">
+      {/* Persistent Top RBAC Bar with Clickable Profile Icon & Scrollable Role Dropdown */}
       <RoleAccessBar
         roleType={roleType}
         activeStaffId={activeStaffId}
@@ -662,15 +708,20 @@ export default function PlannerView() {
         onChangeSubTab={setActiveSubTab}
         pendingHeadCount={pendingHeadCount}
         pendingConsentForUserCount={pendingConsentForUserCount}
+        pendingConsentByWarehouse={pendingConsentByWarehouse}
         activeDeliveriesCount={activeDeliveriesCount}
         onResetDemo={handleResetDemo}
       />
 
-      {/* SUB-TAB 1: Causal Replay & The Bar (RBAC-Scoped for Site Managers) */}
+      {/* SUB-TAB 1: Hex-Styled Causal Replay & The Bar (RBAC-Scoped for Site Managers) */}
       {activeSubTab === "replay" && (
-        <div className="space-y-6">
+        <div className="hex-planner">
+          <HexFontLoader />
+          <div className="hp-noise" />
+          <CornerMarks tone="light" />
+
           {lockedGodownName && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900">
+            <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 bg-sky-50 px-6 py-3 text-xs text-sky-900 sm:px-9">
               <div className="flex items-center gap-2">
                 <Lock className="h-4 w-4 text-sky-700" />
                 <span>
@@ -692,7 +743,108 @@ export default function PlannerView() {
             </div>
           )}
 
-          {/* 1. "The Bar" Headline Scorecard + 16-SKU Matrix */}
+          {/* 1. Clean Drafting-Board Opening */}
+          <header className="relative px-6 py-8 sm:px-9 sm:py-10">
+            <div className="hp-drafting-grid" />
+
+            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl space-y-3">
+                <span className="hp-ochre-tag">
+                  JOB 02 · CONSUMPTION-DRIVEN PLANNER
+                </span>
+
+                <h2 className="leading-[1.1]">
+                  <span className="hp-display hp-ink-gradient block text-[clamp(28px,3.2vw,42px)]">
+                    Order to consumption,
+                  </span>
+                  <span className="inline-flex items-baseline gap-2">
+                    <span className="hp-italic hp-ink-gradient text-[clamp(36px,4.2vw,54px)] leading-[0.96]">
+                      not godown pileups
+                    </span>
+                    <SparkleGlyph className="h-5 w-5 shrink-0 -translate-y-3" />
+                  </span>
+                </h2>
+
+                <p className="text-[15px] font-light leading-[1.9] text-[#43394c]">
+                  Audit 44 months of{" "}
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("planner-replay-console")}
+                    className="hp-capsule"
+                  >
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full"
+                      style={{ backgroundColor: "rgba(44, 122, 98, 0.13)" }}
+                    >
+                      <Compass className="h-3.5 w-3.5 text-[#2c7a62]" />
+                    </span>
+                    <span>Causal Replay</span>
+                  </button>{" "}
+                  and rebalance surplus via{" "}
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("planner-lp-logistics")}
+                    className="hp-capsule"
+                  >
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full"
+                      style={{ backgroundColor: "rgba(173, 142, 182, 0.24)" }}
+                    >
+                      <Route className="h-3.5 w-3.5 text-[#6f4f79]" />
+                    </span>
+                    <span>Stage A LP</span>
+                  </button>{" "}
+                  with zero lookahead.
+                </p>
+              </div>
+
+              {/* Right: Unified SKU Picker + Engineered Primary Action */}
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end lg:w-auto">
+                <div className="min-w-0 flex-1 sm:w-80">
+                  <label
+                    htmlFor="planner-item-select"
+                    className="hp-mono mb-1.5 block text-[10px] uppercase tracking-[0.0833em] text-[#89828d]"
+                  >
+                    Tracked Material ({metadata.items.length} SKUs)
+                  </label>
+                  <select
+                    id="planner-item-select"
+                    value={selectedItemCode}
+                    onChange={(e) => {
+                      setSelectedItemCode(e.target.value);
+                      setDecisionFilter("ALL");
+                    }}
+                    className="hp-select"
+                  >
+                    {metadata.items.map((it) => (
+                      <option key={it.item_code} value={it.item_code}>
+                        {it.item_code} — {it.item_name} ({it.unit})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <PrimaryPlateButton
+                  variant="light"
+                  onClick={() => setShowAllMatrix((prev) => !prev)}
+                >
+                  {showAllMatrix ? (
+                    <>
+                      Hide 16 SKUs
+                      <ChevronUp className="h-3.5 w-3.5 text-[#43394c]" />
+                    </>
+                  ) : (
+                    <>
+                      Compare 16 SKUs
+                      <ChevronDown className="h-3.5 w-3.5 text-[#43394c]" />
+                    </>
+                  )}
+                </PrimaryPlateButton>
+              </div>
+            </div>
+          </header>
+
+          {/* 2. Continuous 4-Column Ruled Proof Strip ("The Bar") + Optional Matrix */}
           <TheBarScorecard
             selected={selectedSummary}
             allSummaries={summaries}
@@ -700,57 +852,68 @@ export default function PlannerView() {
               setSelectedItemCode(code);
               setDecisionFilter("ALL");
             }}
+            showAllMatrix={showAllMatrix}
           />
 
-          {/* 2. Interactive Month Scrubber + Filters */}
-          <MonthScrubber
-            months={months}
-            monthIndex={monthIndex}
-            onChangeMonthIndex={(idx) => {
-              setIsPlaying(false);
-              setMonthIndex(idx);
-            }}
-            isPlaying={isPlaying}
-            onTogglePlay={handleTogglePlay}
-            items={metadata.items}
-            selectedItemCode={selectedItemCode}
-            onChangeItemCode={(code) => {
-              setSelectedItemCode(code);
-              setDecisionFilter("ALL");
-            }}
-            godowns={metadata.godowns}
-            selectedGodown={selectedGodown}
-            onChangeGodown={setSelectedGodown}
-            lockedGodown={lockedGodownName}
-            decisionFilter={decisionFilter}
-            onChangeDecisionFilter={setDecisionFilter}
-            selectedItem={selectedItem}
-            contractorIdleStock={contractorIdleStock}
-            totalProjectedDemand={totalProjectedDemand}
-            decisionCounts={decisionCounts}
-          />
+          {/* 3. Airy Workspace Body */}
+          <div className="relative z-10 space-y-12 px-6 py-9 sm:px-9 sm:py-11">
+            <IdleStockChart
+              summary={selectedSummary}
+              activeMonth={activeMonth}
+              onSelectMonth={handleSelectMonthByString}
+              footerSlot={
+                <MonthScrubber
+                  months={months}
+                  monthIndex={monthIndex}
+                  onChangeMonthIndex={(idx) => {
+                    setIsPlaying(false);
+                    setMonthIndex(idx);
+                  }}
+                  isPlaying={isPlaying}
+                  onTogglePlay={handleTogglePlay}
+                  selectedItem={selectedItem}
+                  contractorIdleStock={contractorIdleStock}
+                  totalProjectedDemand={totalProjectedDemand}
+                />
+              }
+            />
 
-          {/* 3. Actual vs. Planned Idle Stock Curve (Recharts) */}
-          <IdleStockChart
-            summary={selectedSummary}
-            activeMonth={activeMonth}
-            onSelectMonth={handleSelectMonthByString}
-          />
+            {/* Monthly Godown Decisions (RBAC-Scoped) */}
+            <ActionCardsGrid
+              actions={filteredMonthActions}
+              activeMonth={activeMonth}
+              godowns={metadata.godowns}
+              selectedGodown={selectedGodown}
+              onChangeGodown={setSelectedGodown}
+              lockedGodown={lockedGodownName}
+              decisionFilter={decisionFilter}
+              onChangeDecisionFilter={setDecisionFilter}
+              decisionCounts={decisionCounts}
+            />
 
-          {/* 4. Monthly Action Cards (RBAC-Scoped) */}
-          <ActionCardsGrid
-            actions={filteredMonthActions}
-            activeMonth={activeMonth}
-          />
+            {/* Stage A LP Transfer Logistics (RBAC-Scoped) */}
+            <TransferLogisticsPanel
+              monthRoutes={monthTransferRoutes}
+              allItemRoutes={allItemTransferRoutes}
+              activeMonth={activeMonth}
+              unit={selectedItem.unit}
+              leadTimeDays={selectedItem.lead_time_days}
+            />
 
-          {/* 5. Inter-Godown Transfer Logistics Panel (RBAC-Scoped) */}
-          <TransferLogisticsPanel
-            monthRoutes={monthTransferRoutes}
-            allItemRoutes={allItemTransferRoutes}
-            activeMonth={activeMonth}
-            unit={selectedItem.unit}
-            leadTimeDays={selectedItem.lead_time_days}
-          />
+            <div className="space-y-4 pt-2">
+              <FadingRulesDivider />
+              <footer className="hp-mono flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.07em] text-[#89828d]">
+                <span>
+                  Lumino · Plan It · Strictly causal (t_obs ≤ t) · 6 Active
+                  Kanpur Godowns
+                </span>
+                <span>
+                  {metadata.date_range.start} → {metadata.date_range.end} ·
+                  Receipts end {metadata.date_range.receipts_end} · Native UOMs
+                </span>
+              </footer>
+            </div>
+          </div>
         </div>
       )}
 

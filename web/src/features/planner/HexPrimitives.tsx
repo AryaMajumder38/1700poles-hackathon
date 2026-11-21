@@ -2,17 +2,12 @@
 
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
 import type { ActiveGodown } from "@/types/lumino";
-import styles from "./plannerHex.module.css";
 import type { TransferRouteRow } from "./plannerTypes";
 import { shortGodownName } from "./plannerTypes";
 
 const HEX_FONTS_HREF =
   "https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,100..125,600..800;1,100..125,600..800&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap";
 
-/**
- * Loads the Hex design-system Google Font substitutes (Archivo, Cormorant Garamond,
- * IBM Plex Sans, IBM Plex Mono) strictly on client mount without modifying Track A's layout.tsx.
- */
 export function HexFontLoader() {
   useEffect(() => {
     const id = "lumino-planner-hex-fonts";
@@ -26,9 +21,6 @@ export function HexFontLoader() {
   return null;
 }
 
-/**
- * 10px L-shaped drafting registration marks placed at the four corners of major assemblies.
- */
 export function CornerMarks({
   tone = "light",
 }: {
@@ -73,9 +65,6 @@ export function CornerMarks({
   );
 }
 
-/**
- * Signature Hex small geometric rose sparkle (short radial lines) paired beside italic opening phrases.
- */
 export function SparkleGlyph({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -94,34 +83,27 @@ export function SparkleGlyph({ className = "" }: { className?: string }) {
   );
 }
 
-/**
- * Engineered Plate primary button with 1px corners, gradient border, and 4 signature corner loops.
- */
 interface PrimaryPlateButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "light" | "dark";
-  size?: "sm" | "md";
   children: ReactNode;
 }
 
 export function PrimaryPlateButton({
   variant = "light",
-  size = "md",
   className = "",
   children,
   ...rest
 }: PrimaryPlateButtonProps) {
   const loopBorder = variant === "dark" ? "#ad8eb6" : "#cda0a5";
   const loopBg = variant === "dark" ? "#14141c" : "#fffcfc";
-  const sizeClass =
-    size === "sm" ? "h-[38px] px-3.5 text-xs" : "h-[42px] px-4 text-[13px]";
 
   return (
     <button
       type="button"
       className={`${
-        variant === "dark" ? styles.primaryPlateDark : styles.primaryPlate
-      } ${sizeClass} ${className}`}
+        variant === "dark" ? "hp-btn-primary-dark" : "hp-btn-primary"
+      } ${className}`}
       {...rest}
     >
       <span
@@ -149,19 +131,16 @@ export function PrimaryPlateButton({
   );
 }
 
-/**
- * Signature Hex fading horizontal rule bundle (1px rules spaced 3px apart with descending opacity).
- */
 export function FadingRulesDivider() {
-  const opacities = [0.85, 0.58, 0.36, 0.2, 0.09];
+  const opacities = [0.85, 0.56, 0.34, 0.18, 0.08];
   return (
-    <div aria-hidden="true" className="flex flex-col gap-[3px] py-2">
+    <div aria-hidden="true" className="flex flex-col gap-[3px] py-1">
       {opacities.map((op, i) => (
         <div
           key={i}
           className="h-px w-full"
           style={{
-            background: `linear-gradient(90deg, rgba(175,169,177,${op * 0.7}) 0%, rgba(219,215,218,${op}) 20%, rgba(219,215,218,${op}) 80%, rgba(175,169,177,${op * 0.7}) 100%)`,
+            background: `linear-gradient(90deg, rgba(175,169,177,${op * 0.65}) 0%, rgba(219,215,218,${op}) 20%, rgba(219,215,218,${op}) 80%, rgba(175,169,177,${op * 0.65}) 100%)`,
           }}
         />
       ))}
@@ -169,17 +148,16 @@ export function FadingRulesDivider() {
   );
 }
 
-/**
- * Relative geographic schematic positions for the 6 Active Kanpur Construction Godowns.
- * Strictly excludes KANPUR CLOSER per AGENTS.md domain rules.
- */
-const GODOWN_COORDS: Record<ActiveGodown, { x: number; y: number; dx: number; dy: number }> = {
-  "KANPUR FARRUKHABAD": { x: 84, y: 34, dx: 0, dy: -12 },
-  "KANPUR KANNAUJ": { x: 186, y: 40, dx: 0, dy: -12 },
-  "KANPUR ETAWAH": { x: 64, y: 112, dx: 0, dy: 16 },
-  "KANPUR AURAIYA": { x: 158, y: 128, dx: 0, dy: 16 },
-  "KANPUR DEHAT": { x: 254, y: 110, dx: 0, dy: 16 },
-  "KANPUR NAGAR": { x: 334, y: 74, dx: 0, dy: -12 },
+const GODOWN_COORDS: Record<
+  ActiveGodown,
+  { x: number; y: number; dx: number; dy: number }
+> = {
+  "KANPUR FARRUKHABAD": { x: 86, y: 38, dx: 0, dy: -13 },
+  "KANPUR KANNAUJ": { x: 194, y: 42, dx: 0, dy: -13 },
+  "KANPUR ETAWAH": { x: 64, y: 120, dx: 0, dy: 17 },
+  "KANPUR AURAIYA": { x: 164, y: 134, dx: 0, dy: 17 },
+  "KANPUR DEHAT": { x: 266, y: 118, dx: 0, dy: 17 },
+  "KANPUR NAGAR": { x: 344, y: 76, dx: 0, dy: -13 },
 };
 
 const BASE_CORRIDORS: Array<[ActiveGodown, ActiveGodown]> = [
@@ -192,15 +170,15 @@ const BASE_CORRIDORS: Array<[ActiveGodown, ActiveGodown]> = [
   ["KANPUR DEHAT", "KANPUR NAGAR"],
 ];
 
-/**
- * Spare 1px Technical Line Illustration depicting the 6 Kanpur godowns and active LP transfer arcs.
- */
 export function KanpurNetworkDiagram({
   routes,
 }: {
   routes: TransferRouteRow[];
 }) {
-  const activePairs = new Map<string, { from: ActiveGodown; to: ActiveGodown; count: number; totalQty: number }>();
+  const activePairs = new Map<
+    string,
+    { from: ActiveGodown; to: ActiveGodown; count: number }
+  >();
   const activeDonors = new Set<ActiveGodown>();
   const activeReceivers = new Set<ActiveGodown>();
 
@@ -211,42 +189,57 @@ export function KanpurNetworkDiagram({
     const existing = activePairs.get(key);
     if (existing) {
       existing.count += 1;
-      existing.totalQty += r.qty;
     } else {
       activePairs.set(key, {
         from: r.from_godown,
         to: r.to_godown,
         count: 1,
-        totalQty: r.qty,
       });
     }
   }
 
   return (
-    <div className="relative overflow-hidden border border-[#dbd7da] bg-[#fffcfc] p-2.5">
-      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
-        <span className={styles.fontMono}>FIG. 02 — KANPUR 6-GODOWN LP TOPOLOGY</span>
-        <span className={styles.fontMono}>
-          {routes.length > 0 ? `${activePairs.size} ACTIVE CORRIDOR${activePairs.size > 1 ? "S" : ""}` : "STANDBY MESH"}
+    <div className="relative border border-[#dbd7da] bg-[#fffcfc] px-4 py-3">
+      <CornerMarks tone="light" />
+      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.0833em] text-[#89828d] hp-mono">
+        <span>KANPUR 6-GODOWN CORRIDOR GRAPH</span>
+        <span>
+          {activePairs.size > 0
+            ? `${activePairs.size} ACTIVE ROUTE${activePairs.size > 1 ? "S" : ""}`
+            : "STANDBY"}
         </span>
       </div>
       <svg
-        viewBox="0 0 400 160"
-        className="h-[136px] w-full"
+        viewBox="0 0 410 168"
+        className="h-[152px] w-full"
         role="img"
-        aria-label="Schematic network topology of the 6 active Kanpur godowns and inter-godown transfer routes"
+        aria-label="Schematic line diagram of the 6 active Kanpur godowns and LP transfer routes"
       >
-        {/* Subtle perspective base trapezoid */}
         <polygon
-          points="36,144 366,144 384,22 20,22"
-          fill="rgba(49,38,59,0.025)"
+          points="32,150 378,150 394,20 18,20"
+          fill="rgba(49,38,59,0.02)"
           stroke="#e9e5e8"
           strokeWidth="1"
         />
-        <line x1="28" y1="82" x2="375" y2="82" stroke="#e9e5e8" strokeWidth="0.75" strokeDasharray="3 4" />
-        <line x1="200" y1="22" x2="200" y2="144" stroke="#e9e5e8" strokeWidth="0.75" strokeDasharray="3 4" />
+        <line
+          x1="24"
+          y1="86"
+          x2="386"
+          y2="86"
+          stroke="#e9e5e8"
+          strokeWidth="0.75"
+          strokeDasharray="3 4"
+        />
+        <line
+          x1="205"
+          y1="20"
+          x2="205"
+          y2="150"
+          stroke="#e9e5e8"
+          strokeWidth="0.75"
+          strokeDasharray="3 4"
+        />
 
-        {/* Baseline passive road corridors (1px muted eggplant) */}
         {BASE_CORRIDORS.map(([a, b], idx) => {
           const p1 = GODOWN_COORDS[a];
           const p2 = GODOWN_COORDS[b];
@@ -264,12 +257,11 @@ export function KanpurNetworkDiagram({
           );
         })}
 
-        {/* Active LP transfer curved arcs */}
         {Array.from(activePairs.values()).map((edge, idx) => {
           const p1 = GODOWN_COORDS[edge.from];
           const p2 = GODOWN_COORDS[edge.to];
           const mx = (p1.x + p2.x) / 2;
-          const my = (p1.y + p2.y) / 2 - 18;
+          const my = (p1.y + p2.y) / 2 - 20;
           return (
             <g key={`arc-${idx}`}>
               <path
@@ -278,12 +270,11 @@ export function KanpurNetworkDiagram({
                 stroke="#2c7a62"
                 strokeWidth="1.6"
               />
-              <circle cx={mx} cy={my + 9} r="2.2" fill="#ad8eb6" />
+              <circle cx={mx} cy={my + 10} r="2.2" fill="#ad8eb6" />
             </g>
           );
         })}
 
-        {/* 6 Active Godown Nodes */}
         {(Object.keys(GODOWN_COORDS) as ActiveGodown[]).map((g) => {
           const pos = GODOWN_COORDS[g];
           const isDonor = activeDonors.has(g);
@@ -306,7 +297,11 @@ export function KanpurNetworkDiagram({
                   cy={pos.y}
                   r="10"
                   fill="none"
-                  stroke={isReceiver ? "rgba(44,122,98,0.3)" : "rgba(173,142,182,0.45)"}
+                  stroke={
+                    isReceiver
+                      ? "rgba(44,122,98,0.32)"
+                      : "rgba(173,142,182,0.45)"
+                  }
                   strokeWidth="1"
                 />
               )}

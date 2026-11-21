@@ -208,17 +208,35 @@ export function createInitialOpsState(
     is_core_godown: true,
   }));
 
-  const staff: OpsStaffMember[] = warehouses.map((w) => {
-    const preset = CORE_SITE_MANAGERS[w.name as ActiveGodown];
-    return {
-      staff_id: preset?.id ?? `SM-${w.warehouse_id}`,
-      name: preset?.name ?? `Manager (${w.name})`,
-      title: "Site Manager",
-      warehouse_id: w.warehouse_id,
-      project_id: w.project_id,
-      contact: preset?.contact ?? "site.ops@lumino.in",
-    };
-  });
+  const staff: OpsStaffMember[] = [
+    ...warehouses.map((w) => {
+      const preset = CORE_SITE_MANAGERS[w.name as ActiveGodown];
+      return {
+        staff_id: preset?.id ?? `SM-${w.warehouse_id}`,
+        name: preset?.name ?? `Manager (${w.name})`,
+        title: "Site Manager" as const,
+        warehouse_id: w.warehouse_id,
+        project_id: w.project_id,
+        contact: preset?.contact ?? "site.ops@lumino.in",
+      };
+    }),
+    {
+      staff_id: "SUPV-DEH-07",
+      name: "Deepak Chauhan",
+      title: "Supervisor" as const,
+      warehouse_id: "WH-KNP-02",
+      project_id: "PRJ-KNP-RDSS",
+      contact: "d.chauhan@lumino.in",
+    },
+    {
+      staff_id: "SUPV-AUR-08",
+      name: "Rakesh Pandey",
+      title: "Supervisor" as const,
+      warehouse_id: "WH-KNP-01",
+      project_id: "PRJ-KNP-RDSS",
+      contact: "r.pandey@lumino.in",
+    },
+  ];
 
   const materialSupplierMap: Record<
     string,
