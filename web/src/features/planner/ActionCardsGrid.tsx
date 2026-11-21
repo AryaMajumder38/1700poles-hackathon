@@ -1,217 +1,258 @@
 "use client";
 
-import {
-  ArrowLeftRight,
-  Clock,
-  PauseCircle,
-  ShoppingCart,
-  Truck,
-  Warehouse,
-} from "lucide-react";
-import type { SimulationAction, SimulationDecision } from "@/types/lumino";
+import { Lock } from "lucide-react";
+import type {
+  ActiveGodown,
+  SimulationAction,
+  SimulationDecision,
+} from "@/types/lumino";
+import type { DecisionFilter } from "./MonthScrubber";
 import { formatQty, getTransitDays, shortGodownName } from "./plannerTypes";
 
 interface ActionCardsGridProps {
   actions: SimulationAction[];
   activeMonth: string;
+  godowns: ActiveGodown[];
+  selectedGodown: "ALL" | ActiveGodown;
+  onChangeGodown: (g: "ALL" | ActiveGodown) => void;
+  lockedGodown?: string | null;
+  decisionFilter: DecisionFilter;
+  onChangeDecisionFilter: (f: DecisionFilter) => void;
+  decisionCounts: Record<SimulationDecision, number>;
 }
 
-function decisionMeta(decision: SimulationDecision) {
+function decisionAccent(decision: SimulationDecision) {
   switch (decision) {
     case "ORDER":
-      return {
-        label: "ORDER",
-        badgeClass: "bg-blue-100 text-blue-800 border-blue-200",
-        borderClass: "border-blue-200 hover:border-blue-300",
-        icon: ShoppingCart,
-      };
+      return { label: "ORDER", color: "#36578f" };
     case "TRANSFER_IN":
-      return {
-        label: "TRANSFER IN",
-        badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-200",
-        borderClass: "border-emerald-200 hover:border-emerald-300",
-        icon: Truck,
-      };
+      return { label: "TRANSFER IN", color: "#2c7a62" };
     case "TRANSFER_OUT":
-      return {
-        label: "TRANSFER OUT",
-        badgeClass: "bg-sky-100 text-sky-800 border-sky-200",
-        borderClass: "border-sky-200 hover:border-sky-300",
-        icon: ArrowLeftRight,
-      };
+      return { label: "TRANSFER OUT", color: "#765383" };
     case "HOLD":
-      return {
-        label: "HOLD",
-        badgeClass: "bg-amber-100 text-amber-900 border-amber-200",
-        borderClass: "border-amber-200/80 hover:border-amber-300",
-        icon: PauseCircle,
-      };
+      return { label: "HOLD", color: "#a98529" };
     default:
-      return {
-        label: "WAIT",
-        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
-        borderClass: "border-slate-200 hover:border-slate-300",
-        icon: Clock,
-      };
+      return { label: "WAIT", color: "#89828d" };
   }
 }
 
 export default function ActionCardsGrid({
   actions,
   activeMonth,
+  godowns,
+  selectedGodown,
+  onChangeGodown,
+  lockedGodown,
+  decisionFilter,
+  onChangeDecisionFilter,
+  decisionCounts,
 }: ActionCardsGridProps) {
-  if (actions.length === 0) {
-    return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        No godown decisions match the current filter for{" "}
-        <span className="font-mono font-semibold text-slate-700">
-          {activeMonth}
-        </span>
-        .
-      </section>
-    );
-  }
-
   return (
-    <section aria-label="Monthly Godown Action Cards" className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900 sm:text-base">
-          Monthly Godown Decisions —{" "}
-          <span className="font-mono text-amber-700">{activeMonth}</span>
-        </h3>
-        <span className="text-xs text-slate-500">
-          Showing {actions.length} of 6 active Kanpur godowns
-        </span>
+    <section aria-label="Monthly Godown Action Cards" className="space-y-5">
+      {/* Clean Single-Row Section Header with Contextual Filters */}
+      <div className="flex flex-col gap-4 border-b border-[#dbd7da] pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <span className="hp-mono text-[10px] uppercase tracking-[0.0833em] text-[#89828d]">
+            ACTIVE KANPUR GODOWNS · MONTHLY DISPATCH
+          </span>
+          <h3 className="hp-heading mt-1 text-2xl font-extrabold text-[#14141c]">
+            Godown decisions{" "}
+            <span className="hp-italic text-[29px] font-light text-[#31263b]">
+              for {activeMonth}
+            </span>
+          </h3>
+        </div>
+
+        {/* Inline Filters placed directly above the tiles they control */}
+        <div className="flex flex-wrap items-center gap-2">
+          {lockedGodown ? (
+            <div className="inline-flex h-[34px] items-center gap-1.5 rounded-[1px] border border-sky-300 bg-sky-50 px-2.5 text-xs font-semibold text-sky-900">
+              <Lock className="h-3 w-3 text-sky-700" />
+              <span>{shortGodownName(lockedGodown)} (Site Scoped)</span>
+            </div>
+          ) : (
+            <select
+              aria-label="Filter by godown"
+              value={selectedGodown}
+              onChange={(e) =>
+                onChangeGodown(e.target.value as "ALL" | ActiveGodown)
+              }
+              className="hp-select !h-[34px] !w-auto !px-2.5 !text-xs"
+            >
+              <option value="ALL">All 6 Godowns</option>
+              {godowns.map((g) => (
+                <option key={g} value={g}>
+                  {shortGodownName(g)}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div className="flex flex-wrap gap-1">
+            {(
+              ["ALL", "ORDER", "TRANSFER", "HOLD", "WAIT"] as DecisionFilter[]
+            ).map((f) => {
+              const count =
+                f === "ALL"
+                  ? 6
+                  : f === "TRANSFER"
+                  ? decisionCounts.TRANSFER_IN + decisionCounts.TRANSFER_OUT
+                  : decisionCounts[f];
+              const active = decisionFilter === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => onChangeDecisionFilter(f)}
+                  className={`hp-btn-secondary hp-mono h-[34px] px-2.5 text-[10px] font-medium ${
+                    active ? "is-active" : ""
+                  }`}
+                >
+                  {f} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {actions.map((act) => {
-          const meta = decisionMeta(act.decision);
-          const Icon = meta.icon;
-          const hasTransfers =
-            act.transfers_in.length > 0 || act.transfers_out.length > 0;
+      {/* Empty State or 3x2 Flat Technical Tiles */}
+      {actions.length === 0 ? (
+        <div className="border border-dashed border-[#dbd7da] bg-[#fcf8f8] px-6 py-10 text-center text-sm font-light text-[#43394c]">
+          No godowns match this filter in{" "}
+          <span className="hp-mono font-medium text-[#14141c]">
+            {activeMonth}
+          </span>
+          .
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {actions.map((act) => {
+            const accent = decisionAccent(act.decision);
+            const hasTransfers =
+              act.transfers_in.length > 0 || act.transfers_out.length > 0;
 
-          return (
-            <article
-              key={`${act.month}-${act.godown}-${act.item_code}`}
-              className={`flex flex-col justify-between rounded-xl border bg-white p-4 shadow-xs transition-colors ${meta.borderClass}`}
-            >
-              <div>
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
-                      <Warehouse className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900">
+            return (
+              <div
+                key={`${act.month}-${act.godown}-${act.item_code}`}
+                className="hp-tech-tile"
+              >
+                <article className="hp-tech-tile-body flex flex-col justify-between p-5">
+                  <div>
+                    {/* Row 1: Godown Title + Quiet Dot Status */}
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h4 className="hp-heading text-[17px] font-bold text-[#14141c]">
                         {shortGodownName(act.godown)}
                       </h4>
-                      <span className="font-mono text-[11px] text-slate-500">
-                        {act.godown}
+                      <span
+                        className="hp-mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em]"
+                        style={{ color: accent.color }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: accent.color }}
+                        />
+                        {accent.label}
                       </span>
                     </div>
-                  </div>
 
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${meta.badgeClass}`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {meta.label}
-                  </span>
-                </div>
-
-                {/* Primary Instruction Highlight */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {act.order_qty > 0 && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs">
-                      <span className="font-bold text-blue-900 tabular-nums">
-                        Order {formatQty(act.order_qty, act.unit)}
-                      </span>
-                      {act.expected_arrival_month && (
-                        <span className="ml-1.5 font-mono text-[11px] text-blue-700">
-                          ETA {act.expected_arrival_month}
-                        </span>
+                    {/* Row 2: Crisp Primary Instruction Line */}
+                    <div className="mt-2.5 min-h-[24px] space-y-1 text-[13px]">
+                      {act.order_qty > 0 && (
+                        <div className="font-medium text-[#36578f] tabular-nums">
+                          Order {formatQty(act.order_qty, act.unit)}
+                          {act.expected_arrival_month && (
+                            <span className="hp-mono ml-2 text-[11px] font-normal text-[#89828d]">
+                              ETA {act.expected_arrival_month}
+                            </span>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
 
-                  {act.hold_qty > 0 && act.order_qty === 0 && !hasTransfers && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs">
-                      <span className="font-bold text-amber-900 tabular-nums">
-                        Holding {formatQty(act.hold_qty, act.unit)}
-                      </span>
-                    </div>
-                  )}
+                      {act.hold_qty > 0 &&
+                        act.order_qty === 0 &&
+                        !hasTransfers && (
+                          <div className="font-medium text-[#93701d] tabular-nums">
+                            Holding {formatQty(act.hold_qty, act.unit)} on site
+                          </div>
+                        )}
 
-                  {act.transfers_in.map((tr, idx) => (
-                    <div
-                      key={`in-${idx}`}
-                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-900"
-                    >
-                      <span className="font-bold tabular-nums">
-                        +{formatQty(tr.qty, tr.unit)}
-                      </span>{" "}
-                      from{" "}
-                      <span className="font-semibold">
-                        {shortGodownName(tr.from_godown)}
-                      </span>{" "}
-                      <span className="font-mono text-[11px] text-emerald-700">
-                        ({tr.distance_km} km · {getTransitDays(tr.distance_km)}d)
-                      </span>
-                    </div>
-                  ))}
+                      {act.transfers_in.map((tr, idx) => (
+                        <div
+                          key={`in-${idx}`}
+                          className="font-medium text-[#2c7a62] tabular-nums"
+                        >
+                          +{formatQty(tr.qty, tr.unit)} from{" "}
+                          {shortGodownName(tr.from_godown)}
+                          <span className="hp-mono ml-1.5 text-[11px] font-normal text-[#89828d]">
+                            ({tr.distance_km} km ·{" "}
+                            {getTransitDays(tr.distance_km)}d)
+                          </span>
+                        </div>
+                      ))}
 
-                  {act.transfers_out.map((tr, idx) => (
-                    <div
-                      key={`out-${idx}`}
-                      className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs text-sky-900"
-                    >
-                      <span className="font-bold tabular-nums">
-                        -{formatQty(tr.qty, tr.unit)}
-                      </span>{" "}
-                      to{" "}
-                      <span className="font-semibold">
-                        {shortGodownName(tr.to_godown)}
-                      </span>{" "}
-                      <span className="font-mono text-[11px] text-sky-700">
-                        ({tr.distance_km} km · {getTransitDays(tr.distance_km)}d)
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                      {act.transfers_out.map((tr, idx) => (
+                        <div
+                          key={`out-${idx}`}
+                          className="font-medium text-[#765383] tabular-nums"
+                        >
+                          −{formatQty(tr.qty, tr.unit)} to{" "}
+                          {shortGodownName(tr.to_godown)}
+                          <span className="hp-mono ml-1.5 text-[11px] font-normal text-[#89828d]">
+                            ({tr.distance_km} km ·{" "}
+                            {getTransitDays(tr.distance_km)}d)
+                          </span>
+                        </div>
+                      ))}
 
-                {/* Telemetry Grid */}
-                <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-slate-50 p-2.5 text-[11px] tabular-nums">
-                  <div>
-                    <span className="block text-slate-500">On Hand</span>
-                    <span className="font-semibold text-slate-900">
-                      {formatQty(act.godown_on_hand, act.unit)}
-                    </span>
+                      {act.order_qty === 0 &&
+                        act.hold_qty === 0 &&
+                        !hasTransfers && (
+                          <div className="font-light text-[#89828d]">
+                            No replenishment required
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Row 3: Clean Hairline Telemetry Strip (no heavy boxes) */}
+                    <div className="mt-4 grid grid-cols-3 gap-2 border-y border-[#e9e5e8] py-2.5 text-[11px] tabular-nums">
+                      <div>
+                        <span className="hp-mono block text-[9.5px] uppercase tracking-[0.06em] text-[#89828d]">
+                          On Hand
+                        </span>
+                        <span className="mt-0.5 block font-medium text-[#14141c]">
+                          {formatQty(act.godown_on_hand, act.unit)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="hp-mono block text-[9.5px] uppercase tracking-[0.06em] text-[#89828d]">
+                          In Transit
+                        </span>
+                        <span className="mt-0.5 block font-medium text-[#43394c]">
+                          {formatQty(act.in_transit_qty, act.unit)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="hp-mono block text-[9.5px] uppercase tracking-[0.06em] text-[#89828d]">
+                          Demand/mo
+                        </span>
+                        <span className="mt-0.5 block font-medium text-[#14141c]">
+                          {formatQty(act.projected_monthly_demand, act.unit)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="block text-slate-500">In Transit</span>
-                    <span className="font-semibold text-sky-800">
-                      {formatQty(act.in_transit_qty, act.unit)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-500">Causal Dem/mo</span>
-                    <span className="font-semibold text-slate-900">
-                      {formatQty(act.projected_monthly_demand, act.unit)}
-                    </span>
-                  </div>
-                </div>
+
+                  {/* Row 4: Calm Plain-English Rationale */}
+                  <p className="mt-3.5 text-[13px] font-light leading-[1.55] text-[#43394c]">
+                    {act.rationale}
+                  </p>
+                </article>
               </div>
-
-              {/* Plain-English Reasoning String */}
-              <p className="mt-3 border-t border-slate-100 pt-2.5 text-xs leading-relaxed text-slate-600">
-                {act.rationale}
-              </p>
-            </article>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
