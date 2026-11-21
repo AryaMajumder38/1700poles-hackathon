@@ -33,7 +33,11 @@ interface ImbalanceHeatmapProps {
   onSelectSet: (setNo: string) => void;
   selectedGodown: ActiveGodown;
   selectedMonth: string;
-  onSelectCell: (godown: ActiveGodown, month: string) => void;
+  onSelectCell: (
+    godown: ActiveGodown,
+    month: string,
+    shouldScroll?: boolean
+  ) => void;
 }
 
 const CELL_COLORS: Record<CellVisualStatus, string> = {
@@ -253,7 +257,9 @@ export default function ImbalanceHeatmap({
             {worstCell && worstCell.stranded_parent_qty > 0 && (
               <button
                 type="button"
-                onClick={() => onSelectCell(worstCell.godown, worstCell.month)}
+                onClick={() =>
+                  onSelectCell(worstCell.godown, worstCell.month, true)
+                }
                 className="mt-0.5 text-[11px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-950 cursor-pointer"
               >
                 Jump to {shortGodown(worstCell.godown)} ({worstCell.month})

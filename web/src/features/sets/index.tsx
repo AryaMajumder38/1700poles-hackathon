@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Lock } from "lucide-react";
 import { useRbacSession } from "@/features/planner/rbacBridge";
 import type {
@@ -33,6 +33,7 @@ function pickDefaultCell(
 
 export default function SetsView() {
   const { session } = useRbacSession();
+  const inspectorRef = useRef<HTMLDivElement | null>(null);
   const [metadata, setMetadata] = useState<MetadataPayload | null>(null);
   const [allRows, setAllRows] = useState<SetImbalanceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,9 +163,25 @@ export default function SetsView() {
     }
   }
 
-  function handleSelectCell(godown: ActiveGodown, month: string) {
+  function scrollToInspector() {
+    requestAnimationFrame(() => {
+      inspectorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
+  function handleSelectCell(
+    godown: ActiveGodown,
+    month: string,
+    shouldScroll = false
+  ) {
     setSelectedGodown(lockedGodown ?? godown);
     setSelectedMonth(month);
+    if (shouldScroll) {
+      scrollToInspector();
+    }
   }
 
   function handleJumpFromSharedAlert(
@@ -175,6 +192,7 @@ export default function SetsView() {
     setSelectedSetNo(setNo);
     setSelectedGodown(lockedGodown ?? godown);
     setSelectedMonth(month);
+    scrollToInspector();
   }
 
   if (loading) {
@@ -240,7 +258,9 @@ export default function SetsView() {
       />
 
       {/* 3. Cell Drill-Down / Bottleneck Inspector */}
-      <CellBottleneckInspector row={selectedRow} />
+      <div ref={inspectorRef} className="scroll-mt-24">
+        <CellBottleneckInspector row={selectedRow} />
+      </div>
 
       {/* 4. Shared Child (MNB010174 — G.I. Nuts & Bolts) Alert Panel */}
       <SharedChildAlertPanel
