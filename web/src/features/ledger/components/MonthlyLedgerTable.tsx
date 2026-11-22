@@ -6,11 +6,10 @@ import {
   ArrowUp,
   ArrowUpDown,
   Download,
-  FileSpreadsheet,
   Search,
 } from "lucide-react";
 import type { ItemUnit, MonthlyLedgerRow } from "@/types/lumino";
-import { exportToCsv, formatWithUnit } from "../utils";
+import { exportToCsv, formatQty } from "../utils";
 
 interface MonthlyLedgerTableProps {
   rows: MonthlyLedgerRow[];
@@ -35,8 +34,33 @@ interface ColumnDef {
   field: SortField;
   label: string;
   align: "left" | "right";
-  thClassName?: string;
-  iconClassName?: string;
+}
+
+function QtyCell({
+  value,
+  unit,
+  prefix = "",
+  emphasize = false,
+}: {
+  value: number;
+  unit: ItemUnit;
+  prefix?: string;
+  emphasize?: boolean;
+}) {
+  if (!value) {
+    return <span className="text-white/20">—</span>;
+  }
+  return (
+    <>
+      <span
+        className={`tabular-nums ${emphasize ? "font-medium text-white" : "text-[#e7e7e7]"}`}
+      >
+        {prefix}
+        {formatQty(value, unit)}
+      </span>{" "}
+      <span className="text-xs text-[#898989]">{unit}</span>
+    </>
+  );
 }
 
 export function MonthlyLedgerTable({
@@ -113,47 +137,16 @@ export function MonthlyLedgerTable({
     () => [
       { field: "month", label: "Month", align: "left" },
       { field: "godown", label: "Godown", align: "left" },
-      { field: "opening_stock", label: `Opening (${unit})`, align: "right" },
-      {
-        field: "receipts",
-        label: `Receipts (+)`,
-        align: "right",
-        thClassName: "text-emerald-800",
-      },
-      {
-        field: "transfers_in",
-        label: `Xfer In (+)`,
-        align: "right",
-        thClassName: "text-blue-800",
-      },
-      {
-        field: "transfers_out",
-        label: `Xfer Out (-)`,
-        align: "right",
-        thClassName: "text-indigo-800",
-      },
-      {
-        field: "issues",
-        label: `Issues (-)`,
-        align: "right",
-        thClassName: "text-amber-800",
-      },
-      {
-        field: "returns",
-        label: `Returns (+)`,
-        align: "right",
-        thClassName: "text-teal-800",
-      },
-      { field: "net_flow", label: `Net Flow (${unit})`, align: "right" },
-      {
-        field: "closing_stock",
-        label: `Closing (${unit})`,
-        align: "right",
-        thClassName: "font-bold text-slate-900 bg-purple-50/60",
-        iconClassName: "text-purple-600",
-      },
+      { field: "opening_stock", label: "Opening", align: "right" },
+      { field: "receipts", label: "Receipts", align: "right" },
+      { field: "transfers_in", label: "Xfer in", align: "right" },
+      { field: "transfers_out", label: "Xfer out", align: "right" },
+      { field: "issues", label: "Issues", align: "right" },
+      { field: "returns", label: "Returns", align: "right" },
+      { field: "net_flow", label: "Net flow", align: "right" },
+      { field: "closing_stock", label: "Closing", align: "right" },
     ],
-    [unit]
+    []
   );
 
   const handleExport = () => {
@@ -194,62 +187,61 @@ export function MonthlyLedgerTable({
   };
 
   return (
-    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-      {/* Header & Actions */}
-      <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="min-w-0 overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]">
+      {/* Header & Quiet Toolbar */}
+      <div className="flex flex-col gap-3 border-b border-white/[0.06] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-4 w-4 shrink-0 text-slate-700" aria-hidden="true" />
-            <h4 className="text-sm font-semibold text-slate-900">
-              Monthly Inventory Flow Ledger ({sortedRows.length} Records)
-            </h4>
+          <div className="flex items-baseline gap-2.5">
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Monthly ledger
+            </h3>
+            <span className="text-xs tabular-nums text-[#898989]">
+              {sortedRows.length} rows
+            </span>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Full audit ledger of material movements. All quantities formatted in{" "}
-            <strong>{unit}</strong>.
+          <p className="mt-0.5 text-sm text-[#a0a0a0]">
+            Monthly material movements in {unit}.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Quick Search */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-56">
             <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#898989]"
               aria-hidden="true"
             />
             <input
               id="ledger-search"
               type="text"
               aria-label="Search ledger by month, godown, or item code"
-              placeholder="Search month/godown..."
+              placeholder="Search month or godown"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500"
+              className="h-9 w-full rounded-full border border-white/[0.09] bg-[#141414] pl-9 pr-3.5 text-sm text-[#e7e7e7] placeholder:text-[#666666] transition-colors duration-150 hover:border-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:border-white/20"
             />
           </div>
 
-          {/* CSV Export Button */}
           <button
             type="button"
             onClick={handleExport}
             disabled={sortedRows.length === 0}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.06] px-4 text-sm font-medium text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.12] active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Download className="h-3.5 w-3.5 text-slate-600" aria-hidden="true" />
+            <Download className="h-4 w-4 text-[#a0a0a0]" aria-hidden="true" />
             <span>Export CSV</span>
           </button>
         </div>
       </div>
 
-      {/* Table Container (sole horizontal scroll surface) */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full text-left text-xs">
-          <thead className="border-b border-slate-200 bg-slate-50 font-semibold text-slate-700">
+      {/* Table (sole horizontal scroll surface) */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead className="border-b border-white/[0.06] bg-white/[0.025] text-xs font-normal text-[#898989]">
             <tr>
-              {columns.map((col) => {
+              {columns.map((col, idx) => {
                 const isSorted = sortField === col.field;
                 const ariaSort = isSorted
                   ? sortAsc
@@ -261,35 +253,31 @@ export function MonthlyLedgerTable({
                     ? ArrowUp
                     : ArrowDown
                   : ArrowUpDown;
+                const isFirst = idx === 0;
+                const isLast = idx === columns.length - 1;
 
                 return (
                   <th
                     key={col.field}
                     scope="col"
                     aria-sort={ariaSort}
-                    className={`p-0 whitespace-nowrap ${
+                    className={`whitespace-nowrap p-0 ${
                       col.align === "right" ? "text-right" : "text-left"
-                    } ${col.thClassName ?? ""}`}
+                    }`}
                   >
                     <button
                       type="button"
                       onClick={() => handleSort(col.field)}
-                      className={`flex w-full items-center gap-1 px-3 py-2.5 font-inherit transition hover:bg-slate-100/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 cursor-pointer ${
-                        col.align === "right" ? "justify-end" : "justify-start"
+                      className={`flex w-full items-center gap-1 py-3 text-xs font-normal transition-colors duration-150 hover:text-[#e7e7e7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/50 cursor-pointer ${
+                        isSorted ? "text-[#e7e7e7]" : "text-[#898989]"
                       } ${
-                        col.field === "closing_stock"
-                          ? "px-3.5 hover:bg-purple-100/60"
-                          : col.field === "month" || col.field === "godown"
-                            ? "px-3.5"
-                            : ""
-                      }`}
+                        col.align === "right" ? "justify-end" : "justify-start"
+                      } ${isFirst ? "pl-5 pr-3 sm:pl-6" : isLast ? "pl-3 pr-5 sm:pr-6" : "px-3"}`}
                     >
                       <span>{col.label}</span>
                       <SortIcon
                         className={`h-3 w-3 shrink-0 ${
-                          isSorted
-                            ? col.iconClassName ?? "text-amber-600"
-                            : col.iconClassName ?? "text-slate-400"
+                          isSorted ? "text-white" : "text-white/25"
                         }`}
                         aria-hidden="true"
                       />
@@ -299,10 +287,10 @@ export function MonthlyLedgerTable({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-mono text-[11px] tabular-nums">
+          <tbody className="text-sm">
             {paginatedRows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center font-sans text-slate-500">
+                <td colSpan={10} className="px-5 py-10 text-center text-sm text-[#898989]">
                   No ledger rows found matching your filters.
                 </td>
               </tr>
@@ -314,47 +302,56 @@ export function MonthlyLedgerTable({
                 return (
                   <tr
                     key={`${r.month}-${r.godown}-${r.item_code}`}
-                    className="transition-colors hover:bg-slate-50/80"
+                    className="border-b border-white/[0.05] last:border-b-0 transition-colors duration-150 hover:bg-white/[0.03]"
                   >
-                    <td className="whitespace-nowrap px-3.5 py-2 font-medium text-slate-900">
+                    <td className="whitespace-nowrap py-2.5 pl-5 pr-3 sm:pl-6 tabular-nums font-medium text-[#e7e7e7]">
                       {r.month}
                     </td>
-                    <td className="whitespace-nowrap px-3.5 py-2 font-sans text-slate-700">
+                    <td className="whitespace-nowrap px-3 py-2.5 text-[#a0a0a0]">
                       {r.godown}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right text-slate-600">
-                      {formatWithUnit(r.opening_stock, unit)}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      <QtyCell value={r.opening_stock} unit={unit} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right font-semibold text-emerald-700">
-                      {r.receipts > 0 ? `+${formatWithUnit(r.receipts, unit)}` : "—"}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      <QtyCell value={r.receipts} unit={unit} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right text-blue-700">
-                      {r.transfers_in > 0 ? `+${formatWithUnit(r.transfers_in, unit)}` : "—"}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      <QtyCell value={r.transfers_in} unit={unit} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right text-indigo-700">
-                      {r.transfers_out > 0 ? `-${formatWithUnit(r.transfers_out, unit)}` : "—"}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      <QtyCell value={r.transfers_out} unit={unit} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right text-amber-700">
-                      {r.issues > 0 ? `-${formatWithUnit(r.issues, unit)}` : "—"}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      <QtyCell value={r.issues} unit={unit} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right text-teal-700">
-                      {r.returns > 0 ? `+${formatWithUnit(r.returns, unit)}` : "—"}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      <QtyCell value={r.returns} unit={unit} />
                     </td>
-                    <td
-                      className={`whitespace-nowrap px-3 py-2 text-right font-medium ${
-                        isNetPositive
-                          ? "text-emerald-700"
-                          : isNetNegative
-                            ? "text-rose-600"
-                            : "text-slate-400"
-                      }`}
-                    >
-                      {isNetPositive
-                        ? `+${formatWithUnit(r.net_flow, unit)}`
-                        : formatWithUnit(r.net_flow, unit)}
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      {r.net_flow === 0 ? (
+                        <span className="text-white/20">—</span>
+                      ) : (
+                        <>
+                          <span
+                            className={`tabular-nums font-medium ${
+                              isNetPositive
+                                ? "text-emerald-400"
+                                : isNetNegative
+                                  ? "text-rose-400"
+                                  : "text-[#e7e7e7]"
+                            }`}
+                          >
+                            {isNetPositive
+                              ? `+${formatQty(r.net_flow, unit)}`
+                              : formatQty(r.net_flow, unit)}
+                          </span>{" "}
+                          <span className="text-xs text-[#898989]">{unit}</span>
+                        </>
+                      )}
                     </td>
-                    <td className="whitespace-nowrap bg-purple-50/30 px-3.5 py-2 text-right font-bold text-slate-900">
-                      {formatWithUnit(r.closing_stock, unit)}
+                    <td className="whitespace-nowrap py-2.5 pl-3 pr-5 sm:pr-6 text-right">
+                      <QtyCell value={r.closing_stock} unit={unit} emphasize />
                     </td>
                   </tr>
                 );
@@ -364,35 +361,40 @@ export function MonthlyLedgerTable({
         </table>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="ledger-page-size">Rows per page:</label>
+      {/* Minimal Pagination Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-3.5 sm:px-6 text-xs text-[#898989]">
+        <div className="flex items-center gap-3">
           <select
             id="ledger-page-size"
+            aria-label="Rows per page"
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="rounded border border-slate-200 bg-white px-2 py-1 text-xs focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 cursor-pointer"
+            className="h-8 rounded-full border border-white/[0.09] bg-[#141414] px-3 text-xs text-[#e7e7e7] transition-colors duration-150 hover:border-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer"
           >
-            <option value={12}>12 rows</option>
-            <option value={24}>24 rows</option>
-            <option value={44}>44 rows</option>
+            <option value={12} className="bg-[#1a1a1a] text-[#e7e7e7]">
+              12 / page
+            </option>
+            <option value={24} className="bg-[#1a1a1a] text-[#e7e7e7]">
+              24 / page
+            </option>
+            <option value={44} className="bg-[#1a1a1a] text-[#e7e7e7]">
+              44 / page
+            </option>
           </select>
-          <span className="text-slate-400" aria-hidden="true">|</span>
-          <span>
+          <span className="tabular-nums text-[#898989]">
             Page {activePage} of {totalPages}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setCurrentPage(activePage - 1)}
             disabled={activePage <= 1}
-            className="rounded border border-slate-200 px-2.5 py-1 font-medium transition hover:bg-slate-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+            className="h-8 rounded-full border border-white/[0.06] bg-white/[0.06] px-3.5 text-xs font-medium text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.12] active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -400,12 +402,12 @@ export function MonthlyLedgerTable({
             type="button"
             onClick={() => setCurrentPage(activePage + 1)}
             disabled={activePage >= totalPages}
-            className="rounded border border-slate-200 px-2.5 py-1 font-medium transition hover:bg-slate-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+            className="h-8 rounded-full border border-white/[0.06] bg-white/[0.06] px-3.5 text-xs font-medium text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.12] active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed"
           >
             Next
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

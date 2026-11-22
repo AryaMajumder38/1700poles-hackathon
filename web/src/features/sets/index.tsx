@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Lock, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useRbacSession } from "@/features/planner/rbacBridge";
 import type {
   ActiveGodown,
@@ -206,9 +206,41 @@ export default function SetsView() {
 
   if (loading) {
     return (
-      <section className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white p-12 text-sm text-slate-600 shadow-xs">
-        <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
-        Loading 1,584 parent-child kit balance evaluations...
+      <section
+        aria-busy="true"
+        aria-label="Loading kit balance data"
+        className="space-y-6 min-w-0"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <div className="h-9 w-44 rounded-full bg-white/[0.06] animate-pulse" />
+            <div className="h-4 w-72 max-w-full rounded-full bg-white/[0.04] animate-pulse" />
+          </div>
+          <div className="h-9 w-52 rounded-full bg-white/[0.05] border border-white/[0.06] animate-pulse" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {[0, 1, 2].map((idx) => (
+            <div
+              key={idx}
+              className="rounded-[20px] border border-white/[0.06] bg-[#1a1a1a] p-5 space-y-3"
+            >
+              <div className="flex justify-between">
+                <div className="h-3 w-16 rounded-full bg-white/[0.06] animate-pulse" />
+                <div className="h-3 w-24 rounded-full bg-white/[0.05] animate-pulse" />
+              </div>
+              <div className="h-5 w-36 rounded-full bg-white/[0.07] animate-pulse" />
+              <div className="h-3 w-44 rounded-full bg-white/[0.04] animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6">
+          <div className="flex items-center justify-center gap-2.5 py-10 text-sm text-[#898989]">
+            <Loader2 className="h-4 w-4 animate-spin text-[#a0a0a0]" />
+            Loading kit balance data...
+          </div>
+        </div>
       </section>
     );
   }
@@ -217,13 +249,18 @@ export default function SetsView() {
     return (
       <section
         role="alert"
-        className="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between"
+        className="flex flex-col gap-4 rounded-[24px] border border-white/[0.08] bg-[#1a1a1a] p-5 sm:p-6 text-sm sm:flex-row sm:items-center sm:justify-between"
       >
         <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+          <span
+            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.75)]"
+            aria-hidden="true"
+          />
           <div>
-            <p className="font-semibold">Unable to load Match Sets diagnostics</p>
-            <p className="mt-1 text-xs text-rose-800">
+            <p className="font-medium text-[#e7e7e7]">
+              Unable to load kit balance data
+            </p>
+            <p className="mt-0.5 text-xs text-[#a0a0a0]">
               {error ?? "Metadata payload was unavailable."}
             </p>
           </div>
@@ -231,9 +268,9 @@ export default function SetsView() {
         <button
           type="button"
           onClick={handleRetry}
-          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-900 shadow-xs hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 cursor-pointer sm:self-center"
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-white px-4 text-sm font-medium text-black hover:opacity-90 active:opacity-80 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] cursor-pointer sm:self-center"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className="h-3.5 w-3.5 text-black/75" />
           Retry
         </button>
       </section>
@@ -244,23 +281,26 @@ export default function SetsView() {
     <div className="space-y-6 min-w-0">
       {/* RBAC Site-Scoped Indicator */}
       {lockedGodown && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50/80 px-4 py-2.5 text-xs text-amber-950">
-          <div className="flex items-center gap-2 font-semibold">
-            <Lock className="h-3.5 w-3.5 text-amber-700" />
-            <span>Site Scoped: {lockedGodown}</span>
-            <span className="font-normal text-amber-800">
-              ({session.staffName} • {session.staffTitle})
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[16px] border border-white/[0.08] bg-[#1a1a1a] px-4 py-2.5 text-xs text-[#a0a0a0]">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.75)]"
+              aria-hidden="true"
+            />
+            <span className="font-medium text-[#e7e7e7]">
+              Site scoped: {lockedGodown}
+            </span>
+            <span className="text-[#898989]">
+              ({session.staffName} · {session.staffTitle})
             </span>
           </div>
-          <span className="text-[11px] text-amber-800">
-            Showing kit imbalance heatmap &amp; bottleneck alerts strictly for{" "}
-            <strong>{lockedGodown}</strong>. Switch to Head Admin in the top
-            navbar for all 6 godowns.
+          <span className="text-[#898989]">
+            Switch to Head Admin in the top bar to view all 6 godowns.
           </span>
         </div>
       )}
 
-      {/* 1. Ratio Mode Toggle Banner + BOM vs Empirical Data Discovery */}
+      {/* 1. Header + Ratio Mode Toggle & Explanation */}
       <RatioModeBanner
         ratioMode={ratioMode}
         onChangeMode={setRatioMode}
@@ -268,7 +308,7 @@ export default function SetsView() {
         allRows={allRows}
       />
 
-      {/* 2. Set × Godown × Month Imbalance Heatmap */}
+      {/* 2. Set Selector, KPI Summary & Imbalance Heatmap */}
       <ImbalanceHeatmap
         sets={metadata.sets}
         godowns={visibleGodowns}

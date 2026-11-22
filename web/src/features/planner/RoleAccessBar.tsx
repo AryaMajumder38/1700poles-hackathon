@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  Bell,
-  Compass,
-  Database,
-  Lock,
-  RotateCcw,
-  Send,
-  ShieldCheck,
-  UserCircle2,
-} from "lucide-react";
+import { useRef, type KeyboardEvent } from "react";
+import { Lock, RotateCcw } from "lucide-react";
 import type {
   OpsProject,
   OpsStaffMember,
@@ -33,6 +25,12 @@ interface RoleAccessBarProps {
   onResetDemo: () => void;
 }
 
+const SUB_TABS: Array<{ id: PlannerSubTab; label: string }> = [
+  { id: "replay", label: "Causal Replay" },
+  { id: "workflow", label: "Requests & Dispatch" },
+  { id: "admin", label: "Admin Registry" },
+];
+
 export default function RoleAccessBar({
   roleType,
   activeStaffId,
@@ -46,6 +44,7 @@ export default function RoleAccessBar({
   activeDeliveriesCount,
   onResetDemo,
 }: RoleAccessBarProps) {
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const activeStaff = staff.find((s) => s.staff_id === activeStaffId) ?? null;
   const activeWarehouse = activeStaff
     ? warehouses.find((w) => w.warehouse_id === activeStaff.warehouse_id) ?? null
@@ -55,78 +54,77 @@ export default function RoleAccessBar({
     : null;
 
   const isAdmin = roleType === "ADMIN_HEAD";
+  const workflowAlertCount = isAdmin
+    ? pendingHeadCount
+    : pendingConsentForUserCount;
+
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") {
+      nextIndex = (index + 1) % SUB_TABS.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (index - 1 + SUB_TABS.length) % SUB_TABS.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = SUB_TABS.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      onChangeSubTab(SUB_TABS[nextIndex].id);
+      tabRefs.current[nextIndex]?.focus();
+    }
+  };
 
   return (
     <section
       aria-label="Role-Based Access Control and Operations Bar"
-      className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-slate-100 shadow-sm"
+      className="rounded-[20px] border border-white/[0.06] bg-[#1a1a1a]"
     >
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* Left: Scope Indicator & Navigation Context */}
-        <div className="flex flex-wrap items-center gap-3 min-w-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                isAdmin
-                  ? "bg-amber-500 text-slate-950"
-                  : "bg-sky-500 text-slate-950"
-              }`}
-            >
-              {isAdmin ? (
-                <ShieldCheck className="h-5 w-5" />
-              ) : (
-                <UserCircle2 className="h-5 w-5" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                <span>RBAC Access Scope</span>
-                {!isAdmin ? (
-                  <span className="inline-flex items-center gap-0.5 rounded bg-sky-500/20 px-1.5 py-0.5 text-sky-300">
-                    <Lock className="h-2.5 w-2.5" /> Site Scoped
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/20 px-1.5 py-0.5 text-amber-300">
-                    All Projects &amp; Sites
-                  </span>
-                )}
-              </div>
-              <div className="mt-0.5 text-xs font-medium text-slate-200 break-words">
-                {isAdmin ? (
-                  <span>
-                    Head Admin view across{" "}
-                    <strong className="text-amber-300">
-                      {projects.length} project{projects.length > 1 ? "s" : ""}
-                    </strong>{" "}
-                    &amp;{" "}
-                    <strong className="text-amber-300">
-                      {warehouses.length} warehouses
-                    </strong>
-                  </span>
-                ) : (
-                  <span>
-                    Locked to{" "}
-                    <strong className="text-sky-300">
-                      {activeWarehouse?.name}
-                    </strong>{" "}
-                    · {activeProject?.name ?? activeStaff?.project_id}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Slim Top Scope & Status Row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+        {/* Left: Quiet Scope Text */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-[#a0a0a0]">
+          {!isAdmin && (
+            <Lock
+              aria-hidden="true"
+              className="h-3.5 w-3.5 shrink-0 text-[#898989]"
+            />
+          )}
+          {isAdmin ? (
+            <span className="truncate">
+              <span className="font-medium text-white">Head Admin</span>
+              {" · "}All sites ({projects.length} project
+              {projects.length > 1 ? "s" : ""}, {warehouses.length} warehouses)
+            </span>
+          ) : (
+            <span className="truncate">
+              <span className="font-medium text-white">
+                {activeWarehouse?.name ?? "Assigned site"}
+              </span>
+              {" · "}
+              {activeProject?.name ?? activeStaff?.project_id}
+            </span>
+          )}
         </div>
 
-        {/* Right: Notification Pills & Reset */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* Right: Ghost Pill Counter Chips + Ghost Reset */}
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && pendingHeadCount > 0 && (
             <button
               type="button"
               onClick={() => onChangeSubTab("workflow")}
-              className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer"
+              className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.05] px-3 text-xs font-medium text-[#e7e7e7] transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer tabular-nums"
             >
-              <Bell className="h-3.5 w-3.5" />
-              {pendingHeadCount} Pending Request{pendingHeadCount > 1 ? "s" : ""}
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.75)]"
+              />
+              {pendingHeadCount} pending
             </button>
           )}
 
@@ -134,81 +132,87 @@ export default function RoleAccessBar({
             <button
               type="button"
               onClick={() => onChangeSubTab("workflow")}
-              className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/60 bg-rose-500/20 px-3 py-1 text-xs font-bold text-rose-200 hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer"
+              className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.05] px-3 text-xs font-medium text-[#e7e7e7] transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer tabular-nums"
             >
-              <Lock className="h-3.5 w-3.5" />
-              {pendingConsentForUserCount} Pickup Consent Needed
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"
+              />
+              {pendingConsentForUserCount} consent needed
             </button>
           )}
 
-          <span className="hidden sm:inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 font-mono text-[11px] text-slate-300">
-            {activeDeliveriesCount} Active PO{activeDeliveriesCount === 1 ? "" : "s"}
+          <span className="hidden h-7 items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.05] px-3 text-xs text-[#a0a0a0] tabular-nums sm:inline-flex">
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rounded-full bg-teal-300 shadow-[0_0_8px_rgba(94,234,212,0.7)]"
+            />
+            {activeDeliveriesCount} active PO
+            {activeDeliveriesCount === 1 ? "" : "s"}
           </span>
 
           <button
             type="button"
             onClick={onResetDemo}
             title="Reset demo requests, orders, and custom master data"
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer"
+            className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.05] px-3 text-xs font-medium text-[#a0a0a0] transition-colors hover:bg-white/[0.11] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer"
           >
-            <RotateCcw className="h-3 w-3" />
+            <RotateCcw className="h-3 w-3 text-[#898989]" />
             Reset
           </button>
         </div>
       </div>
 
-      {/* Sub-Navigation Bar */}
-      <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-800 pt-3">
-        <button
-          type="button"
-          onClick={() => onChangeSubTab("replay")}
-          className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer ${
-            activeSubTab === "replay"
-              ? "bg-amber-500 text-slate-950"
-              : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-          }`}
-        >
-          <Compass className="h-3.5 w-3.5" />
-          Causal Replay &amp; The Bar
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onChangeSubTab("workflow")}
-          className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer ${
-            activeSubTab === "workflow"
-              ? "bg-amber-500 text-slate-950"
-              : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-          }`}
-        >
-          <Send className="h-3.5 w-3.5" />
-          Requests, Dispatch &amp; Site Consent
-          {(isAdmin ? pendingHeadCount : pendingConsentForUserCount) > 0 && (
-            <span
-              className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                activeSubTab === "workflow"
-                  ? "bg-slate-950 text-amber-400"
-                  : "bg-rose-500 text-white"
+      {/* Underline Sub-Navigation Tabs */}
+      <div
+        role="tablist"
+        aria-label="Planner views"
+        className="flex items-center gap-6 overflow-x-auto border-t border-white/[0.06] px-5"
+      >
+        {SUB_TABS.map((tab, index) => {
+          const isActive = activeSubTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              id={`planner-subtab-${tab.id}`}
+              ref={(el) => {
+                tabRefs.current[index] = el;
+              }}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => onChangeSubTab(tab.id)}
+              onKeyDown={(e) => handleTabKeyDown(e, index)}
+              className={`relative inline-flex shrink-0 items-center gap-2 border-b-2 py-3 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/50 cursor-pointer ${
+                isActive
+                  ? "border-white font-medium text-white"
+                  : "border-transparent text-[#898989] hover:text-[#e7e7e7]"
               }`}
             >
-              {isAdmin ? pendingHeadCount : pendingConsentForUserCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onChangeSubTab("admin")}
-          className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer ${
-            activeSubTab === "admin"
-              ? "bg-amber-500 text-slate-950"
-              : "bg-slate-900 text-slate-300 hover:bg-slate-800"
-          }`}
-        >
-          <Database className="h-3.5 w-3.5" />
-          Admin Master Data &amp; Registry
-          {!isAdmin && <Lock className="h-3 w-3 opacity-70" />}
-        </button>
+              <span>{tab.label}</span>
+              {tab.id === "workflow" && workflowAlertCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.06] px-2 py-0.5 text-[11px] text-[#e7e7e7] tabular-nums">
+                  <span
+                    aria-hidden="true"
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isAdmin
+                        ? "bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.8)]"
+                        : "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.8)]"
+                    }`}
+                  />
+                  {workflowAlertCount}
+                </span>
+              )}
+              {tab.id === "admin" && !isAdmin && (
+                <Lock
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 text-[#898989]"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

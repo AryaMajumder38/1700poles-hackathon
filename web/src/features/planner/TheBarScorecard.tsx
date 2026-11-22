@@ -1,9 +1,9 @@
 "use client";
 
-import { Check } from "lucide-react";
 import type { SimulationAction } from "@/types/lumino";
+import { QtyText } from "./HexPrimitives";
 import type { PlannerBacktestComparison } from "./plannerTypes";
-import { formatPlainNumber, formatQty, shortGodownName } from "./plannerTypes";
+import { formatPlainNumber, shortGodownName } from "./plannerTypes";
 
 interface TheBarScorecardProps {
   selected: PlannerBacktestComparison;
@@ -41,169 +41,209 @@ export default function TheBarScorecard({
     <section
       id="planner-the-bar"
       aria-label="The Bar Backtest Scorecard"
-      className="relative border-y border-[#dbd7da] bg-[#fffcfc]"
+      className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]"
     >
-      {/* Centered 10px uppercase mono proof label interrupting the top boundary */}
-      <div className="pointer-events-none flex justify-center px-3">
-        <span className="hp-mono max-w-full truncate -translate-y-1/2 bg-[#fffcfc] px-3 text-[10px] uppercase tracking-[0.0833em] text-[#43394c]">
-          THE BAR · 44-MONTH PROOF · {selected.item_code} ({selected.unit})
-          {scopedGodown ? " · PROJECT-WIDE (6 GODOWNS)" : ""}
+      {/* Compact Header Row */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] px-6 py-3.5">
+        <div className="flex flex-wrap items-baseline gap-2.5">
+          <h3 className="text-[15px] font-medium text-[#e7e7e7]">
+            Backtest scorecard
+          </h3>
+          <span className="font-mono text-xs text-[#a0a0a0]">
+            {selected.item_code}
+          </span>
+          <span className="text-xs text-[#898989]">({selected.unit})</span>
+        </div>
+        <span className="text-xs text-[#898989]">
+          44-month causal proof
+          {scopedGodown ? " · Project-wide (6 godowns)" : ""}
         </span>
       </div>
 
       {/* Site-scoped live KPI strip when a Site Manager is active */}
       {scopedGodown && scopedMonthAction && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e9e5e8] bg-sky-50/70 px-5 py-2.5 text-xs text-sky-950">
-          <span className="hp-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-sky-800">
-            SITE SNAPSHOT · {shortGodownName(scopedGodown)} ({scopedMonthAction.month})
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-white/[0.025] px-6 py-2.5 text-xs text-[#a0a0a0]">
+          <span className="font-medium text-[#e7e7e7]">
+            Site snapshot · {shortGodownName(scopedGodown)} (
+            {scopedMonthAction.month})
           </span>
-          <div className="hp-mono flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tabular-nums">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 tabular-nums">
             <span>
-              On Hand:{" "}
-              <strong>
-                {formatQty(scopedMonthAction.godown_on_hand, scopedMonthAction.unit)}
-              </strong>
+              On hand:{" "}
+              <QtyText
+                value={scopedMonthAction.godown_on_hand}
+                unit={scopedMonthAction.unit}
+                className="font-medium text-white"
+              />
             </span>
             <span>
               Demand/mo:{" "}
-              <strong>
-                {formatQty(
-                  scopedMonthAction.projected_monthly_demand,
-                  scopedMonthAction.unit
-                )}
-              </strong>
+              <QtyText
+                value={scopedMonthAction.projected_monthly_demand}
+                unit={scopedMonthAction.unit}
+                className="font-medium text-white"
+              />
             </span>
             <span>
-              Site LP Routes (44 mo):{" "}
-              <strong>{scopedTransferCount ?? 0}</strong>
-            </span>
-            <span className="text-[10px] text-sky-700">
-              Below KPIs are project-wide (6 godowns)
+              Site LP routes:{" "}
+              <strong className="font-medium text-white">
+                {scopedTransferCount ?? 0}
+              </strong>
             </span>
           </div>
         </div>
       )}
 
-      {/* Continuous 4-Column Ruled Proof Strip — Metrics First + Concise Labels */}
-      <div className="grid grid-cols-1 divide-y divide-[#e9e5e8] sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-4">
-        {/* Cell 1 */}
-        <div className="flex flex-col justify-between gap-1.5 border-b border-[#e9e5e8] px-5 pt-2.5 pb-5 sm:border-r xl:border-b-0">
-          <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
-              Idle Reduction
-            </span>
-            {isPositiveReduction && (
-              <Check className="h-3.5 w-3.5 text-[#2c7a62]" />
-            )}
-          </div>
+      {/* Continuous 4-Column Stat Strip */}
+      <div className="grid grid-cols-1 divide-y divide-white/[0.06] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-y-0">
+        {/* Stat 1 */}
+        <div className="flex flex-col justify-between gap-2.5 p-6">
+          <span className="text-xs font-normal text-[#898989]">
+            Idle reduction
+          </span>
           <div
-            className="hp-heading text-[28px] font-extrabold leading-none tabular-nums"
-            style={{ color: isPositiveReduction ? "#2c7a62" : "#a98529" }}
+            className={`font-serif font-normal text-[30px] leading-none tracking-[-0.02em] tabular-nums sm:text-[34px] ${
+              isPositiveReduction ? "text-emerald-400" : "text-amber-300"
+            }`}
           >
             {isPositiveReduction ? "−" : "+"}
             {Math.abs(selected.idle_reduction_pct).toFixed(1)}%
           </div>
-          <p className="text-xs font-light text-[#43394c] tabular-nums">
-            Avg yard stock: {formatQty(selected.actual_avg_idle, selected.unit)} →{" "}
-            <span className="font-medium text-[#14141c]">
-              {formatQty(selected.simulated_avg_idle, selected.unit)}
-            </span>
+          <p className="text-xs text-[#898989] tabular-nums">
+            Avg{" "}
+            <QtyText
+              value={selected.actual_avg_idle}
+              unit={selected.unit}
+              className="text-[#a0a0a0]"
+            />{" "}
+            →{" "}
+            <QtyText
+              value={selected.simulated_avg_idle}
+              unit={selected.unit}
+              className="font-medium text-white"
+            />
           </p>
         </div>
 
-        {/* Cell 2 */}
-        <div className="flex flex-col justify-between gap-1.5 border-b border-[#e9e5e8] px-5 pt-2.5 pb-5 xl:border-r xl:border-b-0">
-          <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
-              Peak Stock
+        {/* Stat 2 */}
+        <div className="flex flex-col justify-between gap-2.5 p-6">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-normal text-[#898989]">
+              Peak stock
             </span>
-            <span className="hp-mono text-[10px] text-[#43394c]">
+            <span className="text-xs text-[#a0a0a0] tabular-nums">
               {peakReductionPct >= 0
                 ? `−${peakReductionPct.toFixed(1)}%`
                 : `+${Math.abs(peakReductionPct).toFixed(1)}%`}
             </span>
           </div>
-          <div className="hp-heading text-[28px] font-extrabold leading-none tabular-nums text-[#14141c]">
-            {formatQty(selected.simulated_peak_idle, selected.unit)}
+          <div className="font-serif font-normal text-[30px] leading-none tracking-[-0.02em] text-white tabular-nums sm:text-[34px]">
+            <QtyText value={selected.simulated_peak_idle} unit={selected.unit} />
           </div>
-          <p className="text-xs font-light text-[#43394c] tabular-nums">
-            Worst-month pileup (was {formatQty(selected.actual_peak_idle, selected.unit)})
+          <p className="text-xs text-[#898989] tabular-nums">
+            Was{" "}
+            <QtyText
+              value={selected.actual_peak_idle}
+              unit={selected.unit}
+              className="text-[#a0a0a0]"
+            />{" "}
+            at peak
           </p>
         </div>
 
-        {/* Cell 3 */}
-        <div className="flex flex-col justify-between gap-1.5 border-b border-[#e9e5e8] px-5 pt-2.5 pb-5 sm:border-r sm:border-b-0">
-          <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
+        {/* Stat 3 */}
+        <div className="flex flex-col justify-between gap-2.5 p-6">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-normal text-[#898989]">
               Shortages
             </span>
-            <span className="hp-mono text-[10px] text-[#b43c57]">
+            <span className="text-xs text-[#a0a0a0] tabular-nums">
               {shortageRate.toFixed(1)}% vol
             </span>
           </div>
-          <div className="hp-heading text-[28px] font-extrabold leading-none tabular-nums text-[#b43c57]">
+          <div
+            className={`font-serif font-normal text-[30px] leading-none tracking-[-0.02em] tabular-nums sm:text-[34px] ${
+              selected.simulated_stockout_months > 0
+                ? "text-rose-400"
+                : "text-white"
+            }`}
+          >
             {selected.simulated_stockout_months}
-            <span className="text-base font-semibold text-[#89828d]"> / 44 mo</span>
+            <span className="ml-1.5 font-sans text-xs font-normal text-[#898989]">
+              / 44 mo
+            </span>
           </div>
-          <p className="text-xs font-light text-[#43394c] tabular-nums">
-            Unmet demand ({formatQty(shortageQty, selected.unit)})
+          <p className="text-xs text-[#898989] tabular-nums">
+            Unmet:{" "}
+            <QtyText
+              value={shortageQty}
+              unit={selected.unit}
+              dashZero
+              className={shortageQty > 0 ? "text-rose-400" : "text-[#a0a0a0]"}
+            />
           </p>
         </div>
 
-        {/* Cell 4 */}
-        <div className="flex flex-col justify-between gap-1.5 px-5 pt-2.5 pb-5">
-          <div className="flex items-center justify-between">
-            <span className="hp-mono text-[10px] uppercase tracking-[0.08em] text-[#89828d]">
+        {/* Stat 4 */}
+        <div className="flex flex-col justify-between gap-2.5 p-6">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-normal text-[#898989]">
               Transfers
             </span>
-            <span className="hp-mono text-[10px] text-[#2c7a62]">
+            <span className="text-xs text-emerald-400 tabular-nums">
               {formatPlainNumber(kmSaved)} km saved
             </span>
           </div>
-          <div className="hp-heading text-[28px] font-extrabold leading-none tabular-nums text-[#31263b]">
+          <div className="font-serif font-normal text-[30px] leading-none tracking-[-0.02em] text-white tabular-nums sm:text-[34px]">
             {selected.total_transfers_recommended}
-            <span className="text-base font-semibold text-[#89828d]"> routes</span>
+            <span className="ml-1.5 font-sans text-xs font-normal text-[#898989]">
+              routes
+            </span>
           </div>
-          <p className="text-xs font-light text-[#43394c] tabular-nums">
-            Inter-yard rebalancing ({formatQty(transferQty, selected.unit)})
+          <p className="text-xs text-[#898989] tabular-nums">
+            Shifted:{" "}
+            <QtyText
+              value={transferQty}
+              unit={selected.unit}
+              dashZero
+              className="text-[#a0a0a0]"
+            />
           </p>
         </div>
       </div>
 
-      {/* Expandable 16-SKU Ruled Comparison Matrix */}
+      {/* Expandable 16-SKU Comparison Matrix */}
       {showAllMatrix && (
-        <div className="border-t border-[#dbd7da] bg-[#fffcfc]">
+        <div className="border-t border-white/[0.06]">
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-xs">
+            <table className="min-w-full border-collapse">
               <thead>
-                <tr className="border-b border-[#dbd7da] bg-[#fcf8f8] text-[#43394c]">
-                  <th className="hp-mono px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    SKU
-                  </th>
-                  <th className="hp-mono px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
+                <tr className="border-b border-white/[0.06] bg-white/[0.025] text-xs font-normal text-[#898989]">
+                  <th className="px-6 py-2.5 text-left font-normal">SKU</th>
+                  <th className="px-4 py-2.5 text-left font-normal">
                     Material
                   </th>
-                  <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    Actual Avg
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Actual avg
                   </th>
-                  <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    Plan Avg
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Plan avg
                   </th>
-                  <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    Idle Delta
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Idle delta
                   </th>
-                  <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    Shortage Qty
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Shortage qty
                   </th>
-                  <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    Stockouts (Act/Sim)
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Stockouts (act/sim)
                   </th>
-                  <th className="hp-mono px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                    LP Routes
+                  <th className="px-6 py-2.5 text-right font-normal">
+                    LP routes
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e9e5e8]">
+              <tbody className="divide-y divide-white/[0.05] text-sm">
                 {allSummaries.map((row) => {
                   const isSelected = row.item_code === selected.item_code;
                   const pos = row.idle_reduction_pct >= 0;
@@ -218,48 +258,81 @@ export default function TheBarScorecard({
                           onSelectItem(row.item_code);
                         }
                       }}
-                      className={`cursor-pointer transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] ${
-                        isSelected
-                          ? "hp-stipple bg-[#fcf8f8] font-medium"
-                          : "hover:bg-[#fcf8f8]"
+                      className={`cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-400/50 ${
+                        isSelected ? "bg-white/[0.05]" : "hover:bg-white/[0.03]"
                       }`}
                     >
-                      <td className="hp-mono whitespace-nowrap px-5 py-3 font-semibold text-[#14141c]">
-                        {isSelected && (
-                          <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-[#31263b] align-middle" />
-                        )}
-                        {row.item_code}
+                      <td className="whitespace-nowrap px-6 py-2.5 font-mono text-xs text-[#a0a0a0]">
+                        <span className="inline-flex items-center gap-2">
+                          {isSelected && (
+                            <span
+                              aria-hidden="true"
+                              className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.85)]"
+                            />
+                          )}
+                          <span
+                            className={
+                              isSelected ? "font-medium text-white" : ""
+                            }
+                          >
+                            {row.item_code}
+                          </span>
+                        </span>
                       </td>
                       <td
-                        className="max-w-xs truncate px-4 py-3 text-[#31263b]"
+                        className="max-w-xs truncate px-4 py-2.5 text-[#e7e7e7]"
                         title={row.item_name}
                       >
                         {row.item_name}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-[#43394c]">
-                        {formatQty(row.actual_avg_idle, row.unit)}
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                        <QtyText
+                          value={row.actual_avg_idle}
+                          unit={row.unit}
+                          className="text-[#a0a0a0]"
+                        />
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums text-[#14141c]">
-                        {formatQty(row.simulated_avg_idle, row.unit)}
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right font-medium">
+                        <QtyText
+                          value={row.simulated_avg_idle}
+                          unit={row.unit}
+                          className="text-white"
+                        />
                       </td>
                       <td
-                        className="hp-mono whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums"
-                        style={{ color: pos ? "#2c7a62" : "#a98529" }}
+                        className={`whitespace-nowrap px-4 py-2.5 text-right font-medium tabular-nums ${
+                          pos ? "text-emerald-400" : "text-amber-300"
+                        }`}
                       >
                         {pos ? "−" : "+"}
                         {Math.abs(row.idle_reduction_pct).toFixed(1)}%
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-[#b43c57]">
-                        {formatQty(row.total_shortage_qty ?? 0, row.unit)}
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                        <QtyText
+                          value={row.total_shortage_qty ?? 0}
+                          unit={row.unit}
+                          dashZero
+                          className="text-rose-400"
+                        />
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-[#43394c]">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-[#898989]">
                         {row.actual_stockout_months} /{" "}
-                        <span className="font-semibold text-[#b43c57]">
+                        <span
+                          className={
+                            row.simulated_stockout_months > 0
+                              ? "font-medium text-rose-400"
+                              : "text-white"
+                          }
+                        >
                           {row.simulated_stockout_months}
                         </span>
                       </td>
-                      <td className="hp-mono whitespace-nowrap px-5 py-3 text-right font-semibold tabular-nums text-[#31263b]">
-                        {row.total_transfers_recommended}
+                      <td className="whitespace-nowrap px-6 py-2.5 text-right tabular-nums text-white">
+                        {row.total_transfers_recommended > 0 ? (
+                          row.total_transfers_recommended
+                        ) : (
+                          <span className="text-white/20">—</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -267,8 +340,9 @@ export default function TheBarScorecard({
               </tbody>
             </table>
           </div>
-          <div className="border-t border-[#e9e5e8] bg-[#fcf8f8] px-5 py-2.5 text-[11px] font-light text-[#89828d]">
-            Click any SKU row to load its 44-month causal replay. All figures keep native per-SKU UOMs (never summed across units).
+          <div className="border-t border-white/[0.06] bg-white/[0.02] px-6 py-2.5 text-xs text-[#898989]">
+            Select a SKU row to load its 44-month causal replay. All figures keep
+            native per-SKU UOMs.
           </div>
         </div>
       )}

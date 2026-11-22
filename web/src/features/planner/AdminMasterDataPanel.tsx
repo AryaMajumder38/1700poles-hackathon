@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Building2,
-  FolderPlus,
-  Lock,
-  PackagePlus,
-  Plus,
-  Truck,
-  UserPlus,
-  Users,
-} from "lucide-react";
+import { Lock } from "lucide-react";
 import type { ItemMaster, ItemRole, ItemUnit } from "@/types/lumino";
 import {
   getAllCatalogMaterials,
@@ -29,12 +20,23 @@ interface AdminMasterDataPanelProps {
   roleType: UserRoleType;
   baseItems: ItemMaster[];
   opsState: OpsStoreState;
-  onAddMaterialAndSupplier: (material: OpsMaterial, newSupplier?: OpsSupplier) => void;
+  onAddMaterialAndSupplier: (
+    material: OpsMaterial,
+    newSupplier?: OpsSupplier
+  ) => void;
   onAddProject: (project: OpsProject) => void;
   onAddWarehouse: (warehouse: OpsWarehouse) => void;
   onAddStaff: (staff: OpsStaffMember) => void;
   onSwitchToAdmin: () => void;
 }
+
+const INPUT_CLASS =
+  "h-9 w-full rounded-xl border border-white/[0.1] bg-[#141414] px-3 text-sm text-[#e7e7e7] placeholder:text-[#666666] transition-colors focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50";
+
+const OPTION_CLASS = "bg-[#1a1a1a] text-[#e7e7e7]";
+
+const PRIMARY_BTN_CLASS =
+  "inline-flex h-9 items-center justify-center rounded-full bg-white px-4 text-sm font-medium text-black transition-all duration-200 hover:opacity-90 active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] cursor-pointer";
 
 export default function AdminMasterDataPanel({
   roleType,
@@ -93,24 +95,23 @@ export default function AdminMasterDataPanel({
 
   if (roleType !== "ADMIN_HEAD") {
     return (
-      <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-800">
-          <Lock className="h-6 w-6" />
-        </div>
-        <h3 className="mt-3 text-base font-bold text-slate-900">
-          Admin / Head of Projects Access Required
+      <section className="rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-10 text-center">
+        <Lock
+          aria-hidden="true"
+          className="mx-auto h-5 w-5 text-[#898989]"
+        />
+        <h3 className="mt-3 text-[17px] font-medium text-[#e7e7e7]">
+          Head Admin access required
         </h3>
-        <p className="mx-auto mt-1 max-w-lg text-xs text-slate-600">
-          Role-Based Access Control (RBAC) restricts master data onboarding
-          (materials, supplier IDs, projects, warehouses, and site
-          managers/supervisors) strictly to the Admin role.
+        <p className="mx-auto mt-1 max-w-md text-sm text-[#a0a0a0]">
+          Master data onboarding is restricted to the Head Admin role.
         </p>
         <button
           type="button"
           onClick={onSwitchToAdmin}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
+          className={`mt-5 ${PRIMARY_BTN_CLASS}`}
         >
-          Switch to Admin / Head of Projects
+          Switch to Head Admin
         </button>
       </section>
     );
@@ -147,7 +148,9 @@ export default function AdminMasterDataPanel({
     let createdSupplier: OpsSupplier | undefined;
 
     if (supMode === "new") {
-      const sid = newSupId.trim().toUpperCase() || `SUP-${Date.now().toString().slice(-4)}`;
+      const sid =
+        newSupId.trim().toUpperCase() ||
+        `SUP-${Date.now().toString().slice(-4)}`;
       const sname = newSupName.trim();
       if (!sname) return;
       supId = sid;
@@ -208,7 +211,9 @@ export default function AdminMasterDataPanel({
     const id = whId.trim().toUpperCase();
     const name = whName.trim().toUpperCase();
     if (!id || !name) return;
-    if (opsState.warehouses.some((w) => w.warehouse_id === id || w.name === name)) {
+    if (
+      opsState.warehouses.some((w) => w.warehouse_id === id || w.name === name)
+    ) {
       flash(`Warehouse ${id} / ${name} already exists.`);
       return;
     }
@@ -226,7 +231,8 @@ export default function AdminMasterDataPanel({
 
   const handleStaffSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const id = staffId.trim().toUpperCase() || `SM-${Date.now().toString().slice(-4)}`;
+    const id =
+      staffId.trim().toUpperCase() || `SM-${Date.now().toString().slice(-4)}`;
     const name = staffName.trim();
     if (!name) return;
     const wh = opsState.warehouses.find((w) => w.warehouse_id === staffWhId);
@@ -237,44 +243,50 @@ export default function AdminMasterDataPanel({
       title: staffTitle,
       warehouse_id: wh.warehouse_id,
       project_id: wh.project_id,
-      contact: staffContact.trim() || `${name.toLowerCase().replace(/\s+/g, ".")}@lumino.in`,
+      contact:
+        staffContact.trim() ||
+        `${name.toLowerCase().replace(/\s+/g, ".")}@lumino.in`,
     });
     setStaffId("");
     setStaffName("");
     setStaffContact("");
-    flash(`Onboarded ${staffTitle} ${name} (${id}) to ${wh.name} — available in RBAC Role Switcher!`);
+    flash(`Onboarded ${staffTitle} ${name} (${id}) to ${wh.name}.`);
   };
 
   return (
     <div className="space-y-6">
       {feedback && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-900">
-          {feedback}
+        <div
+          role="status"
+          className="flex items-center gap-2.5 rounded-[20px] border border-white/[0.08] bg-[#1a1a1a] px-5 py-3.5 text-sm text-[#e7e7e7]"
+        >
+          <span
+            aria-hidden="true"
+            className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]"
+          />
+          <span>{feedback}</span>
         </div>
       )}
 
-      {/* Row 1: Add Material + Supplier AND Add Project & Warehouse */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      {/* Row 1: Onboarding Forms */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Form 1: New Material & Supplier */}
         <form
           onSubmit={handleMaterialSubmit}
-          className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-xs"
+          className="space-y-4 rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6"
         >
-          <div className="flex items-center gap-2">
-            <PackagePlus className="h-5 w-5 text-amber-600" />
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Add New Material &amp; Supplier Mapping
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Register new SKUs by Material ID, unit, lead time, and Supplier ID.
-              </p>
-            </div>
+          <div>
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Add material &amp; supplier mapping
+            </h3>
+            <p className="mt-0.5 text-xs text-[#a0a0a0]">
+              Register new SKUs with UOM, lead time, and supplier ID.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
                 Material ID
               </label>
               <input
@@ -283,12 +295,12 @@ export default function AdminMasterDataPanel({
                 placeholder="e.g. MPO010099"
                 value={matCode}
                 onChange={(e) => setMatCode(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-xs"
+                className={`${INPUT_CLASS} font-mono text-xs`}
               />
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
-                Lead Time (Days)
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
+                Lead time (days)
               </label>
               <input
                 type="number"
@@ -297,14 +309,14 @@ export default function AdminMasterDataPanel({
                 required
                 value={matLeadDays}
                 onChange={(e) => setMatLeadDays(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={`${INPUT_CLASS} tabular-nums`}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-600">
-              Material Name / Specification
+          <div className="space-y-1.5">
+            <label className="block text-xs font-normal text-[#898989]">
+              Material name
             </label>
             <input
               type="text"
@@ -312,38 +324,38 @@ export default function AdminMasterDataPanel({
               placeholder="e.g. 11KV Polymer Pin Insulator with GI Pin"
               value={matName}
               onChange={(e) => setMatName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+              className={INPUT_CLASS}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
                 Unit (UOM)
               </label>
               <select
                 value={matUnit}
                 onChange={(e) => setMatUnit(e.target.value as ItemUnit)}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
                 {ITEM_UNITS.map((u) => (
-                  <option key={u} value={u}>
+                  <option key={u} value={u} className={OPTION_CLASS}>
                     {u}
                   </option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
-                Kit Role
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
+                Kit role
               </label>
               <select
                 value={matRole}
                 onChange={(e) => setMatRole(e.target.value as ItemRole)}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
                 {ITEM_ROLES.map((r) => (
-                  <option key={r} value={r}>
+                  <option key={r} value={r} className={OPTION_CLASS}>
                     {r}
                   </option>
                 ))}
@@ -351,45 +363,51 @@ export default function AdminMasterDataPanel({
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+          {/* Supplier Link Divider Section */}
+          <div className="space-y-3 border-t border-white/[0.06] pt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold text-slate-700">
-                Supplier Link
+              <span className="text-xs font-normal text-[#898989]">
+                Supplier link
               </span>
-              <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-[11px]">
+              <div className="inline-flex rounded-full border border-white/[0.06] bg-white/[0.05] p-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setSupMode("existing")}
-                  className={`rounded px-2 py-0.5 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer ${
+                  className={`rounded-full px-3 py-1 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
                     supMode === "existing"
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-600"
+                      ? "bg-white font-medium text-black shadow-sm"
+                      : "text-[#a0a0a0] hover:text-white"
                   }`}
                 >
-                  Existing Supplier
+                  Existing
                 </button>
                 <button
                   type="button"
                   onClick={() => setSupMode("new")}
-                  className={`rounded px-2 py-0.5 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer ${
+                  className={`rounded-full px-3 py-1 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
                     supMode === "new"
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-600"
+                      ? "bg-white font-medium text-black shadow-sm"
+                      : "text-[#a0a0a0] hover:text-white"
                   }`}
                 >
-                  + New Supplier ID
+                  New supplier
                 </button>
               </div>
             </div>
 
             {supMode === "existing" ? (
               <select
+                aria-label="Select existing supplier"
                 value={selectedSupId}
                 onChange={(e) => setSelectedSupId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
                 {opsState.suppliers.map((s) => (
-                  <option key={s.supplier_id} value={s.supplier_id}>
+                  <option
+                    key={s.supplier_id}
+                    value={s.supplier_id}
+                    className={OPTION_CLASS}
+                  >
                     {s.supplier_id} — {s.name} (avg {s.avg_delivery_days}d)
                   </option>
                 ))}
@@ -398,118 +416,111 @@ export default function AdminMasterDataPanel({
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <input
                   type="text"
-                  placeholder="Supplier ID (SUP-006)"
+                  placeholder="SUP-006"
                   value={newSupId}
                   onChange={(e) => setNewSupId(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 font-mono text-xs"
+                  className={`${INPUT_CLASS} font-mono text-xs`}
                 />
                 <input
                   type="text"
                   required
-                  placeholder="Supplier Name"
+                  placeholder="Supplier name"
                   value={newSupName}
                   onChange={(e) => setNewSupName(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                  className={INPUT_CLASS}
                 />
                 <input
                   type="text"
                   placeholder="Category"
                   value={newSupCategory}
                   onChange={(e) => setNewSupCategory(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                  className={INPUT_CLASS}
                 />
               </div>
             )}
           </div>
 
-          <button
-            type="submit"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add Material to Catalog
+          <button type="submit" className={PRIMARY_BTN_CLASS}>
+            Add material to catalog
           </button>
         </form>
 
-        {/* Form 2 & 3: Add Project + Add Warehouse + Add Manager/Supervisor */}
-        <div className="space-y-5">
+        {/* Right Column: Project, Warehouse & Staff Forms */}
+        <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Add Project */}
             <form
               onSubmit={handleProjectSubmit}
-              className="space-y-2.5 rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
+              className="space-y-3 rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6"
             >
-              <div className="flex items-center gap-2">
-                <FolderPlus className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900">
-                  Add New Project
-                </h3>
-              </div>
+              <h3 className="text-[15px] font-medium text-[#e7e7e7]">
+                Add project
+              </h3>
               <input
                 type="text"
                 required
-                placeholder="Project ID (e.g. PRJ-LKO-02)"
+                placeholder="Project ID (PRJ-LKO-02)"
                 value={projId}
                 onChange={(e) => setProjId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-xs"
+                className={`${INPUT_CLASS} font-mono text-xs`}
               />
               <input
                 type="text"
                 required
-                placeholder="Project Name"
+                placeholder="Project name"
                 value={projName}
                 onChange={(e) => setProjName(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               />
               <input
                 type="text"
-                placeholder="Region / Circle"
+                placeholder="Region / circle"
                 value={projRegion}
                 onChange={(e) => setProjRegion(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               />
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2 cursor-pointer"
-              >
-                + Register Project
+              <button type="submit" className={`w-full ${PRIMARY_BTN_CLASS}`}>
+                Register project
               </button>
             </form>
 
             {/* Add Warehouse */}
             <form
               onSubmit={handleWarehouseSubmit}
-              className="space-y-2.5 rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
+              className="space-y-3 rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6"
             >
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-sky-600" />
-                <h3 className="text-xs font-bold text-slate-900">
-                  Add New Warehouse / Site
-                </h3>
-              </div>
+              <h3 className="text-[15px] font-medium text-[#e7e7e7]">
+                Add warehouse
+              </h3>
               <input
                 type="text"
                 required
                 placeholder="Warehouse ID (WH-UNN-07)"
                 value={whId}
                 onChange={(e) => setWhId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-xs"
+                className={`${INPUT_CLASS} font-mono text-xs`}
               />
               <input
                 type="text"
                 required
-                placeholder="Warehouse Name (UNNAO STORE)"
+                placeholder="Warehouse name"
                 value={whName}
                 onChange={(e) => setWhName(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               />
               <div className="grid grid-cols-2 gap-2">
                 <select
+                  aria-label="Warehouse project"
                   value={whProjId}
                   onChange={(e) => setWhProjId(e.target.value)}
-                  className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                  className={INPUT_CLASS}
                 >
                   {opsState.projects.map((p) => (
-                    <option key={p.project_id} value={p.project_id}>
+                    <option
+                      key={p.project_id}
+                      value={p.project_id}
+                      className={OPTION_CLASS}
+                    >
                       {p.project_id}
                     </option>
                   ))}
@@ -520,14 +531,11 @@ export default function AdminMasterDataPanel({
                   placeholder="km to hub"
                   value={whDistKm}
                   onChange={(e) => setWhDistKm(e.target.value)}
-                  className="rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                  className={`${INPUT_CLASS} tabular-nums`}
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 cursor-pointer"
-              >
-                + Add Warehouse
+              <button type="submit" className={`w-full ${PRIMARY_BTN_CLASS}`}>
+                Add warehouse
               </button>
             </form>
           </div>
@@ -535,13 +543,15 @@ export default function AdminMasterDataPanel({
           {/* Add Site Manager / Supervisor */}
           <form
             onSubmit={handleStaffSubmit}
-            className="space-y-2.5 rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
+            className="space-y-3 rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6"
           >
-            <div className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-indigo-600" />
-              <h3 className="text-xs font-bold text-slate-900">
-                Onboard Site Manager / Supervisor (Auto-Enables RBAC Role)
+            <div>
+              <h3 className="text-[15px] font-medium text-[#e7e7e7]">
+                Onboard site manager or supervisor
               </h3>
+              <p className="mt-0.5 text-xs text-[#a0a0a0]">
+                Assigned staff appear immediately in the RBAC profile switcher.
+              </p>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
               <input
@@ -549,33 +559,43 @@ export default function AdminMasterDataPanel({
                 placeholder="Staff ID (SM-07)"
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
-                className="rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-xs"
+                className={`${INPUT_CLASS} font-mono text-xs`}
               />
               <input
                 type="text"
                 required
-                placeholder="Full Name"
+                placeholder="Full name"
                 value={staffName}
                 onChange={(e) => setStaffName(e.target.value)}
-                className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               />
               <select
+                aria-label="Staff role"
                 value={staffTitle}
                 onChange={(e) =>
                   setStaffTitle(e.target.value as "Site Manager" | "Supervisor")
                 }
-                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
-                <option value="Site Manager">Site Manager</option>
-                <option value="Supervisor">Supervisor</option>
+                <option value="Site Manager" className={OPTION_CLASS}>
+                  Site Manager
+                </option>
+                <option value="Supervisor" className={OPTION_CLASS}>
+                  Supervisor
+                </option>
               </select>
               <select
+                aria-label="Assigned warehouse"
                 value={staffWhId}
                 onChange={(e) => setStaffWhId(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
                 {opsState.warehouses.map((w) => (
-                  <option key={w.warehouse_id} value={w.warehouse_id}>
+                  <option
+                    key={w.warehouse_id}
+                    value={w.warehouse_id}
+                    className={OPTION_CLASS}
+                  >
                     {w.name}
                   </option>
                 ))}
@@ -584,73 +604,81 @@ export default function AdminMasterDataPanel({
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="email"
-                placeholder="Email / Contact (optional)"
+                placeholder="Email (optional)"
                 value={staffContact}
                 onChange={(e) => setStaffContact(e.target.value)}
-                className="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={`${INPUT_CLASS} flex-1`}
               />
               <button
                 type="submit"
-                className="rounded-lg bg-indigo-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700 focus-visible:ring-offset-2 cursor-pointer"
+                className={`shrink-0 ${PRIMARY_BTN_CLASS}`}
               >
-                + Assign Manager / Supervisor
+                Assign staff
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Live Master Registries: Materials+Suppliers & Staff+Warehouses */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      {/* Live Master Registries */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Materials & Suppliers Table */}
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
-              <Truck className="h-4 w-4 text-amber-600" />
-              Material &amp; Supplier Registry ({allMaterials.length} SKUs)
+        <section className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+            <h4 className="text-[15px] font-medium text-[#e7e7e7]">
+              Material &amp; supplier registry ({allMaterials.length})
             </h4>
-            <span className="font-mono text-[11px] text-slate-500">
-              {opsState.suppliers.length} Active Suppliers
+            <span className="rounded-full border border-white/[0.06] bg-white/[0.04] px-3 py-1 text-xs text-[#a0a0a0] tabular-nums">
+              {opsState.suppliers.length} suppliers
             </span>
           </div>
-          <div className="mt-3 max-h-64 overflow-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-xs">
-              <thead className="sticky top-0 bg-slate-100 text-slate-700">
+          <div className="max-h-72 overflow-auto">
+            <table className="min-w-full border-collapse">
+              <thead className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#161616] text-xs font-normal text-[#898989]">
                 <tr>
-                  <th className="px-2.5 py-2 text-left font-semibold">SKU ID</th>
-                  <th className="px-2.5 py-2 text-left font-semibold">Supplier</th>
-                  <th className="px-2.5 py-2 text-right font-semibold">UOM</th>
-                  <th className="px-2.5 py-2 text-right font-semibold">Lead Time</th>
+                  <th className="px-6 py-2.5 text-left font-normal">SKU</th>
+                  <th className="px-4 py-2.5 text-left font-normal">
+                    Supplier
+                  </th>
+                  <th className="px-4 py-2.5 text-right font-normal">UOM</th>
+                  <th className="px-6 py-2.5 text-right font-normal">
+                    Lead time
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/[0.05] text-sm">
                 {allMaterials.map((m) => (
-                  <tr key={m.item_code} className="hover:bg-slate-50">
-                    <td className="px-2.5 py-1.5">
-                      <div className="flex items-center gap-1.5 font-mono font-semibold text-slate-900">
-                        <span>{m.item_code}</span>
+                  <tr
+                    key={m.item_code}
+                    className="transition-colors duration-150 hover:bg-white/[0.03]"
+                  >
+                    <td className="px-6 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-white">
+                          {m.item_code}
+                        </span>
                         {m.is_custom && (
-                          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
-                            NEW
+                          <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-0.5 text-[11px] text-violet-300">
+                            New
                           </span>
                         )}
                       </div>
-                      <div className="max-w-[200px] truncate text-[11px] text-slate-500">
+                      <div className="max-w-[200px] truncate text-xs text-[#898989]">
                         {m.item_name}
                       </div>
                     </td>
-                    <td className="px-2.5 py-1.5">
-                      <div className="font-mono text-[11px] font-semibold text-slate-800">
+                    <td className="px-4 py-2.5">
+                      <div className="font-mono text-xs text-[#898989]">
                         {m.supplier_id}
                       </div>
-                      <div className="max-w-[160px] truncate text-[11px] text-slate-500">
+                      <div className="max-w-[160px] truncate text-xs text-[#a0a0a0]">
                         {m.supplier_name}
                       </div>
                     </td>
-                    <td className="px-2.5 py-1.5 text-right font-mono text-slate-700">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-xs text-[#898989]">
                       {m.unit}
                     </td>
-                    <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-amber-800">
+                    <td className="whitespace-nowrap px-6 py-2.5 text-right font-medium text-white tabular-nums">
                       {m.lead_time_days}d
                     </td>
                   </tr>
@@ -660,55 +688,58 @@ export default function AdminMasterDataPanel({
           </div>
         </section>
 
-        {/* Projects, Warehouses & Staff RBAC Directory */}
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
-              <Users className="h-4 w-4 text-indigo-600" />
-              Sites, Projects &amp; RBAC Staff ({opsState.staff.length} Assigned)
+        {/* Sites, Projects & RBAC Staff Directory */}
+        <section className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+            <h4 className="text-[15px] font-medium text-[#e7e7e7]">
+              Sites &amp; RBAC staff ({opsState.staff.length})
             </h4>
-            <span className="font-mono text-[11px] text-slate-500">
-              {opsState.projects.length} Project(s) · {opsState.warehouses.length} Sites
+            <span className="rounded-full border border-white/[0.06] bg-white/[0.04] px-3 py-1 text-xs text-[#a0a0a0] tabular-nums">
+              {opsState.projects.length} project
+              {opsState.projects.length === 1 ? "" : "s"} ·{" "}
+              {opsState.warehouses.length} sites
             </span>
           </div>
-          <div className="mt-3 max-h-64 overflow-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-xs">
-              <thead className="sticky top-0 bg-slate-100 text-slate-700">
+          <div className="max-h-72 overflow-auto">
+            <table className="min-w-full border-collapse">
+              <thead className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#161616] text-xs font-normal text-[#898989]">
                 <tr>
-                  <th className="px-2.5 py-2 text-left font-semibold">Staff</th>
-                  <th className="px-2.5 py-2 text-left font-semibold">Role</th>
-                  <th className="px-2.5 py-2 text-left font-semibold">Assigned Site</th>
-                  <th className="px-2.5 py-2 text-left font-semibold">Project</th>
+                  <th className="px-6 py-2.5 text-left font-normal">Staff</th>
+                  <th className="px-4 py-2.5 text-left font-normal">Role</th>
+                  <th className="px-4 py-2.5 text-left font-normal">
+                    Assigned site
+                  </th>
+                  <th className="px-6 py-2.5 text-left font-normal">Project</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/[0.05] text-sm">
                 {opsState.staff.map((s) => {
                   const wh = opsState.warehouses.find(
                     (w) => w.warehouse_id === s.warehouse_id
                   );
                   return (
-                    <tr key={s.staff_id} className="hover:bg-slate-50">
-                      <td className="px-2.5 py-1.5">
-                        <div className="font-semibold text-slate-900">{s.name}</div>
-                        <div className="font-mono text-[10px] text-slate-500">
-                          {s.staff_id} · {s.contact}
+                    <tr
+                      key={s.staff_id}
+                      className="transition-colors duration-150 hover:bg-white/[0.03]"
+                    >
+                      <td className="px-6 py-2.5">
+                        <div className="font-medium text-[#e7e7e7]">
+                          {s.name}
+                        </div>
+                        <div className="text-xs text-[#898989]">
+                          <span className="font-mono">{s.staff_id}</span> ·{" "}
+                          {s.contact}
                         </div>
                       </td>
-                      <td className="px-2.5 py-1.5">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            s.title === "Site Manager"
-                              ? "bg-sky-100 text-sky-800"
-                              : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
+                      <td className="whitespace-nowrap px-4 py-2.5">
+                        <span className="rounded-full border border-white/[0.06] bg-white/[0.05] px-2.5 py-0.5 text-xs text-[#a0a0a0]">
                           {s.title}
                         </span>
                       </td>
-                      <td className="px-2.5 py-1.5 font-medium text-slate-800">
+                      <td className="whitespace-nowrap px-4 py-2.5 text-[#e7e7e7]">
                         {wh?.name ?? s.warehouse_id}
                       </td>
-                      <td className="px-2.5 py-1.5 font-mono text-[11px] text-slate-600">
+                      <td className="whitespace-nowrap px-6 py-2.5 font-mono text-xs text-[#898989]">
                         {s.project_id}
                       </td>
                     </tr>

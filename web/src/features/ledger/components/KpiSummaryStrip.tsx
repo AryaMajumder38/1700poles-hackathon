@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  ArrowDownToLine,
-  Clock,
-  Hammer,
-  TrendingUp,
-  Truck,
-  Warehouse,
-} from "lucide-react";
 import type { ItemUnit } from "@/types/lumino";
-import { formatQty, formatWithUnit } from "../utils";
+import { formatMonthShort, formatQty, formatWithUnit } from "../utils";
 
 interface KpiSummaryStripProps {
   unit: ItemUnit;
@@ -41,128 +33,100 @@ export function KpiSummaryStrip({
   peakContractorMonth,
 }: KpiSummaryStripProps) {
   const netIssues = totalIssues - totalReturns;
-  const inflowLabel = `Inflow to ${godownName === "ALL" ? "All Godowns" : godownName}`;
-  const issuesBreakdown = `Issues ${formatWithUnit(totalIssues, unit)} − Returns ${formatWithUnit(totalReturns, unit)}`;
+  const inflowLabel = godownName === "ALL" ? "All godowns" : godownName;
+  const issuesBreakdown = `${formatWithUnit(totalIssues, unit)} issued · ${formatWithUnit(totalReturns, unit)} returned`;
+  const peakGodownLabel = peakGodownMonth
+    ? `Peak ${formatMonthShort(peakGodownMonth)}`
+    : "No peak recorded";
   const peakContractorLabel = peakContractorMonth
-    ? `Peak ${formatWithUnit(peakContractorIdleStock, unit)} (${peakContractorMonth})`
+    ? `Peak ${formatWithUnit(peakContractorIdleStock, unit)} (${formatMonthShort(peakContractorMonth)})`
     : `Peak ${formatWithUnit(peakContractorIdleStock, unit)}`;
 
+  const stats = [
+    {
+      label: "Total receipts",
+      value: totalReceipts,
+      sublabel: inflowLabel,
+      indicator: false,
+    },
+    {
+      label: "Net issued",
+      value: netIssues,
+      sublabel: issuesBreakdown,
+      indicator: false,
+    },
+    {
+      label: "Peak godown stock",
+      value: peakGodownStock,
+      sublabel: peakGodownLabel,
+      indicator: false,
+    },
+    {
+      label: "Closing godown stock",
+      value: endingGodownStock,
+      sublabel: "On hand at period end",
+      indicator: false,
+    },
+    {
+      label: "Project consumption",
+      value: totalConsumption,
+      sublabel: "Installed across all 6 sites",
+      indicator: false,
+    },
+    {
+      label: "Contractor idle stock",
+      value: contractorIdleStock,
+      sublabel: peakContractorLabel,
+      indicator: contractorIdleStock > 0,
+    },
+  ];
+
+  const cellBorderClasses = [
+    "",
+    "border-t border-white/[0.06] sm:border-t-0 sm:border-l lg:border-t-0 lg:border-l",
+    "border-t border-white/[0.06] sm:border-l-0 lg:border-t-0 lg:border-l",
+    "border-t border-white/[0.06] sm:border-l lg:border-l-0",
+    "border-t border-white/[0.06] sm:border-l-0 lg:border-l",
+    "border-t border-white/[0.06] sm:border-l lg:border-l",
+  ];
+
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {/* 1. Total Inflow / Receipts */}
-      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
-          <span>Total Receipts</span>
-          <ArrowDownToLine className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-slate-900">
-            {formatQty(totalReceipts, unit)}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">{unit}</span>
-        </div>
-        <p className="mt-1 truncate text-[11px] text-slate-500" title={inflowLabel}>
-          {inflowLabel}
-        </p>
+    <section
+      aria-label="Key inventory metrics"
+      className="min-w-0 overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]"
+    >
+      <div className="grid grid-cols-1 divide-white/[0.06] sm:grid-cols-2 lg:grid-cols-3">
+        {stats.map((stat, idx) => (
+          <div
+            key={stat.label}
+            className={`min-w-0 p-5 sm:p-6 transition-colors duration-200 hover:bg-white/[0.02] ${cellBorderClasses[idx] ?? ""}`}
+          >
+            <div className="flex items-center gap-2 text-xs font-normal text-[#898989]">
+              {stat.indicator && (
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"
+                  aria-hidden="true"
+                />
+              )}
+              <span className="truncate">{stat.label}</span>
+            </div>
+            <div className="mt-2.5 flex items-baseline">
+              <span className="font-serif font-normal tabular-nums text-[28px] sm:text-[32px] leading-none tracking-[-0.02em] text-white">
+                {formatQty(stat.value, unit)}
+              </span>
+              <span className="ml-1.5 font-sans text-xs text-[#898989]">
+                {unit}
+              </span>
+            </div>
+            <p
+              className="mt-2 truncate text-xs text-[#898989] tabular-nums"
+              title={stat.sublabel}
+            >
+              {stat.sublabel}
+            </p>
+          </div>
+        ))}
       </div>
-
-      {/* 2. Net Issues to Contractors */}
-      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
-          <span>Net Issued to Contractors</span>
-          <Truck className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-slate-900">
-            {formatQty(netIssues, unit)}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">{unit}</span>
-        </div>
-        <p className="mt-1 truncate text-[11px] text-slate-500" title={issuesBreakdown}>
-          {issuesBreakdown}
-        </p>
-      </div>
-
-      {/* 3. Peak Godown Stock */}
-      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
-          <span>Peak Godown Stock</span>
-          <TrendingUp className="h-4 w-4 shrink-0 text-purple-600" aria-hidden="true" />
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-slate-900">
-            {formatQty(peakGodownStock, unit)}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">{unit}</span>
-        </div>
-        <p className="mt-1 font-mono text-[11px] font-medium text-purple-700">
-          Peak in {peakGodownMonth || "—"}
-        </p>
-      </div>
-
-      {/* 4. Current/Ending Godown Stock */}
-      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
-          <span>Closing Godown Stock</span>
-          <Warehouse className="h-4 w-4 shrink-0 text-blue-600" aria-hidden="true" />
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-slate-900">
-            {formatQty(endingGodownStock, unit)}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">{unit}</span>
-        </div>
-        <p className="mt-1 text-[11px] text-slate-500">
-          Unissued in godown shelves
-        </p>
-      </div>
-
-      {/* 5. Project-Wide Total Consumption */}
-      <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-500">
-          <span className="flex flex-wrap items-center gap-1">
-            <span>Total Consumption</span>
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-600">
-              Project
-            </span>
-          </span>
-          <Hammer className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden="true" />
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-slate-900">
-            {formatQty(totalConsumption, unit)}
-          </span>
-          <span className="text-xs font-semibold text-slate-500">{unit}</span>
-        </div>
-        <p className="mt-1 text-[11px] text-slate-500">
-          Actual field installation
-        </p>
-      </div>
-
-      {/* 6. Project-Wide Contractor Idle Stock */}
-      <div className="min-w-0 rounded-xl border border-amber-300 bg-amber-50/50 p-4 shadow-xs">
-        <div className="flex items-center justify-between gap-2 text-xs font-medium text-amber-900">
-          <span className="flex flex-wrap items-center gap-1 font-semibold">
-            <span>Contractor Idle Stock</span>
-            <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[9px] font-bold text-amber-900">
-              Field Idle
-            </span>
-          </span>
-          <Clock className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
-        </div>
-        <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-amber-950">
-            {formatQty(contractorIdleStock, unit)}
-          </span>
-          <span className="text-xs font-semibold text-amber-800">{unit}</span>
-        </div>
-        <p
-          className="mt-1 truncate text-[11px] font-medium text-amber-800"
-          title={peakContractorLabel}
-        >
-          {peakContractorLabel}
-        </p>
-      </div>
-    </div>
+    </section>
   );
 }

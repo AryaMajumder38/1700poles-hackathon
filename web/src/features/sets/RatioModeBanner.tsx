@@ -1,14 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  Scale,
-  Sparkles,
-} from "lucide-react";
+import { useMemo } from "react";
+import { ChevronDown } from "lucide-react";
 import type {
   SetDefinition,
   SetImbalanceRow,
@@ -29,8 +22,6 @@ export default function RatioModeBanner({
   sets,
   allRows,
 }: RatioModeBannerProps) {
-  const [showRatioTable, setShowRatioTable] = useState(false);
-
   // Extract one representative row per (set_no, mode) to compare exact BOM vs empirical ratios
   const ratioLookup = useMemo(() => {
     const map = new Map<string, number>();
@@ -48,55 +39,39 @@ export default function RatioModeBanner({
   return (
     <section
       aria-label="Ratio Mode Selector and Data Discovery"
-      className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4 min-w-0"
+      className="space-y-3.5 min-w-0"
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-amber-400">
-            <Scale className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
-                Job 3 • Match the Sets
-              </span>
-              <span className="font-mono text-xs text-slate-500">
-                3 Assembly Kits × 6 Active Godowns × 44 Months
-              </span>
-            </div>
-            <h2 className="mt-1 text-base font-bold text-slate-900 sm:text-lg">
-              Parent-Child Kit Ratio Engine &amp; Bottleneck Diagnostics
-            </h2>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="font-serif font-normal text-[30px] sm:text-[36px] leading-[1.2] tracking-[-0.015em] text-[#e7e7e7]">
+            Kit balance
+          </h2>
+          <p className="mt-1 text-sm text-[#a0a0a0]">
+            Parent-child assembly readiness across active godowns and months.
+          </p>
         </div>
 
-        {/* Prominent Segmented Toggle */}
+        {/* Steep Pill Segmented Control */}
         <div
           role="group"
           aria-label="Kit Ratio Mode"
-          className="flex flex-wrap sm:inline-flex self-start rounded-xl border border-slate-200 bg-slate-100 p-1 gap-1 lg:self-center"
+          className="inline-flex self-start items-center rounded-full bg-white/[0.05] border border-white/[0.06] p-1 sm:self-end"
         >
           <button
             type="button"
             aria-pressed={ratioMode === "empirical"}
             onClick={() => onChangeMode("empirical")}
-            className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
+            title="Recommended — uses observed field consumption ratios"
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] ${
               ratioMode === "empirical"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-white text-black shadow-sm"
+                : "text-[#a0a0a0] hover:text-white"
             }`}
           >
-            <Sparkles
-              className={`h-3.5 w-3.5 shrink-0 ${
-                ratioMode === "empirical" ? "text-amber-400" : "text-slate-400"
-              }`}
-            />
-            <span>Empirical Site Ratio</span>
+            <span>Empirical</span>
             <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                ratioMode === "empirical"
-                  ? "bg-emerald-500/20 text-emerald-300"
-                  : "bg-emerald-100 text-emerald-800"
+              className={`text-[11px] font-normal ${
+                ratioMode === "empirical" ? "text-black/55" : "text-[#898989]"
               }`}
             >
               Recommended
@@ -107,171 +82,164 @@ export default function RatioModeBanner({
             type="button"
             aria-pressed={ratioMode === "bom"}
             onClick={() => onChangeMode("bom")}
-            className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
+            title="Raw Lumino BOM ratios from sets.csv"
+            className={`inline-flex items-center rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] ${
               ratioMode === "bom"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-white text-black shadow-sm"
+                : "text-[#a0a0a0] hover:text-white"
             }`}
           >
-            <AlertTriangle
-              className={`h-3.5 w-3.5 shrink-0 ${
-                ratioMode === "bom" ? "text-amber-400" : "text-slate-400"
-              }`}
-            />
-            <span>Lumino BOM Ratio</span>
+            BOM
           </button>
         </div>
       </div>
 
-      {/* Critical Domain Catch Callout */}
-      <div
-        className={`rounded-lg border p-3.5 text-xs leading-relaxed ${
-          ratioMode === "empirical"
-            ? "border-emerald-200 bg-emerald-50/70 text-emerald-950"
-            : "border-amber-300 bg-amber-50/80 text-amber-950"
-        }`}
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-2.5">
-            <Info
-              className={`mt-0.5 h-4 w-4 shrink-0 ${
-                ratioMode === "empirical"
-                  ? "text-emerald-700"
-                  : "text-amber-700"
-              }`}
-            />
-            <div>
-              <p className="font-semibold">
-                {ratioMode === "empirical"
-                  ? "Data Discovery Active — Using Observed Field Consumption Ratios"
-                  : "Warning — Raw Lumino BOM Contains Severe Unit & Scaling Mismatches"}
-              </p>
-              <p className="mt-1 opacity-90">
-                In <code className="font-mono font-semibold">sets.csv</code>,
-                shared child{" "}
-                <code className="font-mono font-semibold">
-                  {SHARED_BOLT_CODE}
-                </code>{" "}
-                (G.I. Nuts &amp; Bolts) is stocked in{" "}
-                <strong>Metric Tonnes (MT)</strong> but carries BOM ratios of{" "}
-                <code className="font-mono">1.0</code> /{" "}
-                <code className="font-mono">0.75</code> (claiming 1 tonne per
-                pole clamp—producing <strong>0 balanced months</strong> across
-                the entire project). Actual cumulative site consumption is{" "}
-                <strong>~0.000086 MT</strong> (~86 g) per Clamp and{" "}
-                <strong>~0.000065 MT</strong> (~65 g) per Dist. Box. Similarly,
-                3-Ph Ring Lugs (
-                <code className="font-mono font-semibold">MLU020008</code>) list
-                BOM <code className="font-mono">0.25</code> vs actual field
-                usage of <strong>5.66 NOS/box</strong>.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            aria-expanded={showRatioTable}
-            onClick={() => setShowRatioTable((prev) => !prev)}
-            className="inline-flex shrink-0 items-center gap-1 self-start rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 cursor-pointer"
-          >
-            {showRatioTable ? (
+      {/* Quiet Ratio Note + Collapsible Explanation & Table */}
+      <details className="group">
+        <summary className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#a0a0a0] cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded-full py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]">
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+              ratioMode === "empirical"
+                ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]"
+                : "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.75)]"
+            }`}
+            aria-hidden="true"
+          />
+          <span>
+            {ratioMode === "empirical" ? (
               <>
-                Hide Ratios <ChevronUp className="h-3.5 w-3.5" />
+                Using observed field ratios — BOM ratios for{" "}
+                <span className="font-mono text-[#e7e7e7]">
+                  {SHARED_BOLT_CODE}
+                </span>{" "}
+                are unit-inconsistent
               </>
             ) : (
               <>
-                Inspect BOM vs Empirical <ChevronDown className="h-3.5 w-3.5" />
+                Using raw BOM ratios — BOM ratios for{" "}
+                <span className="font-mono text-[#e7e7e7]">
+                  {SHARED_BOLT_CODE}
+                </span>{" "}
+                are unit-inconsistent in sets.csv
               </>
             )}
-          </button>
-        </div>
-      </div>
+          </span>
+          <span className="inline-flex items-center gap-0.5 font-medium text-[#e7e7e7] underline decoration-white/25 underline-offset-4 group-hover:text-white transition-colors">
+            Why?
+            <ChevronDown className="h-3.5 w-3.5 text-[#898989] transition-transform duration-200 group-open:rotate-180" />
+          </span>
+        </summary>
 
-      {/* Collapsible Side-by-Side Ratio Reference Table */}
-      {showRatioTable && (
-        <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-xs">
-            <thead className="bg-slate-50 text-left font-semibold text-slate-600">
-              <tr>
-                <th className="px-3 py-2">Set</th>
-                <th className="px-3 py-2">Child SKU</th>
-                <th className="px-3 py-2">UOM</th>
-                <th className="px-3 py-2 text-right">BOM Ratio</th>
-                <th className="px-3 py-2 text-right">Empirical Ratio</th>
-                <th className="px-3 py-2">Ratio Variance Note</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {sets.map((s) =>
-                s.children.map((ch) => {
-                  const bomR =
-                    ratioLookup.get(`bom__${s.set_no}__${ch.child_code}`) ??
-                    ch.ratio_of_parent;
-                  const empR =
-                    ratioLookup.get(
-                      `empirical__${s.set_no}__${ch.child_code}`
-                    ) ?? ch.ratio_of_parent;
-                  const isShared = ch.child_code === SHARED_BOLT_CODE;
-                  const factor = empR > 0 ? bomR / empR : 0;
+        <div className="mt-3 overflow-hidden rounded-[20px] border border-white/[0.06] bg-[#1a1a1a]">
+          <p className="p-5 text-xs leading-relaxed text-[#a0a0a0]">
+            In <span className="font-mono text-[#e7e7e7]">sets.csv</span>,
+            shared child{" "}
+            <span className="font-mono text-[#e7e7e7]">
+              {SHARED_BOLT_CODE}
+            </span>{" "}
+            (G.I. Nuts &amp; Bolts) is stocked in Metric Tonnes (MT) but carries
+            BOM ratios of 1.0 and 0.75 (implying 1 tonne per pole clamp,
+            yielding 0 balanced months project-wide). Observed site consumption
+            is ~0.000086 MT (~86 g) per Clamp and ~0.000065 MT (~65 g) per Dist.
+            Box. Similarly, 3-Ph Ring Lugs (
+            <span className="font-mono text-[#e7e7e7]">MLU020008</span>) list
+            BOM 0.25 vs. field usage of 5.66 NOS/SET.
+          </p>
 
-                  let note = "Aligned within 3×";
-                  if (isShared) {
-                    note =
-                      "MT vs pcs unit mismatch (~11,600× BOM overstatement); allocated proportionally across 3 sets";
-                  } else if (bomR <= 0 && empR > 0) {
-                    note = `No BOM ratio (site consumes ~${empR.toFixed(2)} ${ch.child_unit}/${s.parent_unit})`;
-                  } else if (empR <= 0 && bomR > 0) {
-                    note = `No empirical consumption observed (BOM lists ${formatRatio(bomR, ch.child_unit)} ${ch.child_unit}/${s.parent_unit})`;
-                  } else if (bomR <= 0 && empR <= 0) {
-                    note = "n/a (no BOM or empirical ratio)";
-                  } else if (factor < 0.2) {
-                    note = `Under-stated ${(1 / factor).toFixed(1)}× in BOM (site consumes ~${empR.toFixed(2)} ${ch.child_unit}/${s.parent_unit})`;
-                  } else if (factor > 2.5) {
-                    note = `Over-stated ${factor.toFixed(1)}× in BOM`;
-                  }
+          <div className="overflow-x-auto max-w-full border-t border-white/[0.06]">
+            <table className="min-w-full text-left">
+              <thead className="border-b border-white/[0.06] bg-white/[0.025] text-xs font-normal text-[#898989]">
+                <tr>
+                  <th className="px-4 py-2.5 font-normal">Set</th>
+                  <th className="px-4 py-2.5 font-normal">Child SKU</th>
+                  <th className="px-4 py-2.5 font-normal">Unit ratio</th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    BOM ratio
+                  </th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Empirical ratio
+                  </th>
+                  <th className="px-4 py-2.5 font-normal">Variance note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.05] text-sm">
+                {sets.map((s) =>
+                  s.children.map((ch) => {
+                    const bomR =
+                      ratioLookup.get(`bom__${s.set_no}__${ch.child_code}`) ??
+                      ch.ratio_of_parent;
+                    const empR =
+                      ratioLookup.get(
+                        `empirical__${s.set_no}__${ch.child_code}`
+                      ) ?? ch.ratio_of_parent;
+                    const isShared = ch.child_code === SHARED_BOLT_CODE;
+                    const factor = empR > 0 ? bomR / empR : 0;
 
-                  return (
-                    <tr
-                      key={`${s.set_no}-${ch.child_code}`}
-                      className={isShared ? "bg-amber-50/40" : undefined}
-                    >
-                      <td className="px-3 py-2 font-mono font-semibold text-slate-800 whitespace-nowrap">
-                        {s.set_no}{" "}
-                        <span className="font-sans font-normal text-slate-500">
-                          ({shortSetLabel(s.set_no)})
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-slate-800">
-                        <span className="font-mono font-semibold">
-                          {ch.child_code}
-                        </span>
-                        {isShared && (
-                          <span className="ml-1.5 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
-                            SHARED (3 SETS)
+                    let note = "Aligned within 3×";
+                    if (isShared) {
+                      note =
+                        "MT vs. pcs unit mismatch (~11,600× BOM overstatement); shared across 3 sets";
+                    } else if (bomR <= 0 && empR > 0) {
+                      note = `No BOM ratio (site consumes ~${empR.toFixed(2)} ${ch.child_unit}/${s.parent_unit})`;
+                    } else if (empR <= 0 && bomR > 0) {
+                      note = `No empirical consumption observed (BOM lists ${formatRatio(bomR, ch.child_unit)} ${ch.child_unit}/${s.parent_unit})`;
+                    } else if (bomR <= 0 && empR <= 0) {
+                      note = "n/a (no BOM or empirical ratio)";
+                    } else if (factor < 0.2) {
+                      note = `Under-stated ${(1 / factor).toFixed(1)}× in BOM (site consumes ~${empR.toFixed(2)} ${ch.child_unit}/${s.parent_unit})`;
+                    } else if (factor > 2.5) {
+                      note = `Over-stated ${factor.toFixed(1)}× in BOM`;
+                    }
+
+                    return (
+                      <tr
+                        key={`${s.set_no}-${ch.child_code}`}
+                        className="hover:bg-white/[0.03] transition-colors duration-150"
+                      >
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <span className="font-medium text-[#e7e7e7]">
+                            {s.set_no}
                           </span>
-                        )}
-                        <div className="text-[11px] text-slate-500 truncate max-w-xs">
-                          {ch.child_name}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-slate-600">
-                        {ch.child_unit} / {s.parent_unit}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-700">
-                        {formatRatio(bomR, ch.child_unit)}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-emerald-800">
-                        {formatRatio(empR, ch.child_unit)}
-                      </td>
-                      <td className="px-3 py-2 text-slate-600">{note}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                          <span className="ml-1.5 text-xs text-[#898989]">
+                            {shortSetLabel(s.set_no)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs text-[#e7e7e7]">
+                              {ch.child_code}
+                            </span>
+                            {isShared && (
+                              <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-0.5 text-[11px] text-violet-300">
+                                Shared
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-[#898989] truncate max-w-xs">
+                            {ch.child_name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-[#898989] whitespace-nowrap">
+                          {ch.child_unit} / {s.parent_unit}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-[#a0a0a0] whitespace-nowrap">
+                          {formatRatio(bomR, ch.child_unit)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-medium tabular-nums text-white whitespace-nowrap">
+                          {formatRatio(empR, ch.child_unit)}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-[#898989]">
+                          {note}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      )}
+      </details>
     </section>
   );
 }

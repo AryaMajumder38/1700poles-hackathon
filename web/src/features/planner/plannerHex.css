@@ -1,395 +1,29 @@
-/* Scoped Hex-inspired "curiosity on drafting paper" stylesheet for Track C (PlannerView).
+/* Scoped styles for Track C (PlannerView).
  * Strictly namespaced under `.hex-planner` so zero styles leak to Track A, B, or D.
- * Uses a plain CSS file (not CSS Modules) to avoid Next.js 16 + @tailwindcss/turbopack class-hash mismatch.
+ * Follows web/STEEP_DESIGN_BRIEF.md: Steep Editorial Machinery & Starlight dark tokens.
  */
 
 .hex-planner {
-  --hp-canvas: #fffcfc;
-  --hp-blush: #fcf8f8;
-  --hp-white: #ffffff;
-  --hp-eggplant: #31263b;
-  --hp-deep-ink: #01011b;
-  --hp-ink: #14141c;
-  --hp-secondary: #43394c;
-  --hp-muted: #89828d;
-  --hp-rule: #dbd7da;
-  --hp-strong-rule: #afa9b1;
-  --hp-grid: #e9e5e8;
-  --hp-ochre: #a98529;
-  --hp-rose-edge: #cda0a5;
-  --hp-rose: #f5c0c0;
-  --hp-rose-secondary: #e3b2b3;
-  --hp-rose-muted: #99797d;
-  --hp-lavender: #ad8eb6;
-  --hp-dark-rail: #2b252c;
-  --hp-dark-rule: #3a3138;
-  --hp-dark-strong-rule: #6a565b;
-  --hp-mint: #2c7a62;
-  --hp-shortage: #b43c57;
-  --hp-order: #36578f;
-
   position: relative;
-  background-color: var(--hp-canvas);
-  color: var(--hp-eggplant);
-  font-family: "IBM Plex Sans", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  border: 1px solid var(--hp-rule);
-  overflow: hidden;
+  color: #e7e7e7;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
-/* Subtle SVG noise overlay at 0.055 opacity */
-.hex-planner .hp-noise {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-}
-
-/* Typography recipes */
-.hex-planner .hp-display {
-  font-family: "Archivo", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  font-stretch: 112%;
-  letter-spacing: -0.028em;
-}
-
-.hex-planner .hp-heading {
-  font-family: "Archivo", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: -0.025em;
-}
-
-.hex-planner .hp-italic {
-  font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-weight: 300;
-  letter-spacing: -0.018em;
-}
-
-.hex-planner .hp-mono {
-  font-family: "IBM Plex Mono", var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
-}
-
-/* Light ink gradient (eggplant -> deep violet) with optical side allowance */
-.hex-planner .hp-ink-gradient {
-  background: linear-gradient(112deg, #31263b 0%, #01011b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  padding-inline: 6px;
-  margin-inline: -6px;
-}
-
-.hex-planner .hp-dark-gradient {
-  background: linear-gradient(55deg, #ffffff 20%, rgba(245, 192, 192, 0.88) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* 64px drafting grid masked gently around the edges */
-.hex-planner .hp-drafting-grid {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--hp-grid) 1px, transparent 1px),
-    linear-gradient(to right, var(--hp-grid) 1px, transparent 1px);
-  background-size: 64px 64px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.72) 76%, rgba(0, 0, 0, 0.2) 100%);
-  mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.72) 76%, rgba(0, 0, 0, 0.2) 100%);
-}
-
-/* Stippled surface for active matrix row */
-.hex-planner .hp-stipple {
-  background-image: radial-gradient(rgba(49, 38, 59, 0.14) 0.85px, transparent 0.85px);
-  background-size: 9px 9px;
-}
-
-/* Ochre technical annotation (7% wash) */
-.hex-planner .hp-ochre-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: rgba(169, 133, 41, 0.07);
-  color: #93701d;
-  border: 1px solid rgba(169, 133, 41, 0.2);
-  padding: 3px 9px;
-  border-radius: 1px;
-  font-family: "IBM Plex Mono", var(--font-geist-mono), monospace;
-  font-size: 11px;
-  line-height: 1.2;
-  letter-spacing: 0.0833em;
-  text-transform: uppercase;
-}
-
-/* Floating white product panel (Level 2) */
-.hex-planner .hp-floating-panel {
-  background-color: var(--hp-white);
-  border-radius: 6px;
-  box-shadow:
-    0px 0px 0px 1px rgba(49, 38, 59, 0.18),
-    0px 44px 72px 0px rgba(49, 38, 59, 0.04),
-    0px 16px 32px 0px rgba(49, 38, 59, 0.05);
-}
-
-/* Technical tile (Level 1 — flat 5% wash frame) */
-.hex-planner .hp-tech-tile {
-  background: rgba(49, 38, 59, 0.04);
-  padding: 5px;
-  border-radius: 2px;
-  transition: background-color 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.hex-planner .hp-tech-tile:hover {
-  background: rgba(49, 38, 59, 0.075);
-}
-
-.hex-planner .hp-tech-tile-body {
-  background-color: var(--hp-canvas);
-  border: 1px solid var(--hp-rule);
-  border-radius: 1px;
-  height: 100%;
-  transition: border-color 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.hex-planner .hp-tech-tile:hover .hp-tech-tile-body {
-  border-color: var(--hp-strong-rule);
-}
-
-/* Charcoal dark stage + soft lavender horizon */
-.hex-planner .hp-charcoal {
-  position: relative;
-  background-color: var(--hp-ink);
-  color: var(--hp-rose);
-  border-top: 1px solid var(--hp-dark-rule);
-  overflow: hidden;
-}
-
-.hex-planner .hp-lavender-glow {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(at 50% 115%, rgba(173, 142, 182, 0.34), rgba(0, 0, 0, 0) 68%);
-}
-
-/* Engineered Plate primary buttons (1px corners, gradient border, corner loops) */
-.hex-planner .hp-btn-primary {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px;
-  border-radius: 1px;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(to bottom, #fffcfc, #fcf6f7) padding-box,
-    linear-gradient(45deg, #cda0a5, #31263b) border-box;
-  color: #14141c;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.25s cubic-bezier(0.25, 0.1, 0.25, 1), border-color 0.25s ease;
-}
-
-.hex-planner .hp-btn-primary:hover {
-  background:
-    linear-gradient(to right, #e9e5e8, #e9e5e8) padding-box,
-    linear-gradient(45deg, #afa9b1, #31263b) border-box;
-}
-
-.hex-planner .hp-btn-primary:active {
-  background:
-    linear-gradient(to right, #dbd7da, #dbd7da) padding-box,
-    linear-gradient(45deg, #afa9b1, #31263b) border-box;
-}
-
-.hex-planner .hp-btn-primary:focus-visible {
-  outline: 2px solid rgba(49, 38, 59, 0.44);
-  outline-offset: 2px;
-}
-
-.hex-planner .hp-btn-primary-dark {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px;
-  border-radius: 1px;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(to right, #14141c, #14141c) padding-box,
-    linear-gradient(45deg, #f5c0c0, #ad8eb6) border-box;
-  color: #f5c0c0;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.hex-planner .hp-btn-primary-dark:hover {
-  background:
-    linear-gradient(to right, #2b252c, #2b252c) padding-box,
-    linear-gradient(45deg, #f5c0c0, #ad8eb6) border-box;
-}
-
-.hex-planner .hp-btn-primary-dark:active {
-  background:
-    linear-gradient(to right, #3a3138, #3a3138) padding-box,
-    linear-gradient(45deg, #6a565b, #ad8eb6) border-box;
-}
-
-.hex-planner .hp-btn-primary-dark:focus-visible {
-  outline: 2px solid #f5c0c0;
-  outline-offset: 2px;
-}
-
-/* Secondary 1px engineered plate buttons */
-.hex-planner .hp-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 1px;
-  border: 1px solid var(--hp-rule);
-  background-color: transparent;
-  color: var(--hp-eggplant);
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
-}
-
-.hex-planner .hp-btn-secondary:hover:not(:disabled) {
-  background-color: var(--hp-grid);
-  border-color: var(--hp-strong-rule);
-}
-
-.hex-planner .hp-btn-secondary:focus-visible {
-  outline: 2px solid rgba(49, 38, 59, 0.55);
-  outline-offset: 2px;
-}
-
-.hex-planner .hp-btn-secondary.is-active {
-  background-color: var(--hp-eggplant);
-  border-color: var(--hp-eggplant);
-  color: var(--hp-canvas);
-}
-
-.hex-planner .hp-btn-dark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 1px;
-  border: 1px solid var(--hp-dark-rule);
-  background-color: rgba(43, 37, 44, 0.5);
-  color: var(--hp-rose-secondary);
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
-}
-
-.hex-planner .hp-btn-dark:hover:not(:disabled) {
-  background-color: var(--hp-dark-rail);
-  border-color: var(--hp-dark-strong-rule);
-  color: var(--hp-rose);
-}
-
-.hex-planner .hp-btn-dark:focus-visible {
-  outline: 2px solid #f5c0c0;
-  outline-offset: 2px;
-}
-
-.hex-planner .hp-btn-dark:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.hex-planner .hp-btn-dark.is-active {
-  background-color: rgba(245, 192, 192, 0.14);
-  border-color: var(--hp-rose);
-  color: #ffffff;
-}
-
-/* Inline capability capsule (pill strictly for inline sentence capabilities) */
-.hex-planner .hp-capsule {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 3px 12px 3px 4px;
-  margin-inline: 2px;
-  background: rgba(255, 252, 252, 0.88);
-  border: 1px solid var(--hp-rule);
-  border-radius: 30px;
-  box-shadow: 0px 2px 4px 0px rgba(1, 1, 27, 0.05);
-  color: var(--hp-ink);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1;
-  vertical-align: middle;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.hex-planner .hp-capsule:hover {
-  background: rgba(49, 38, 59, 0.06);
-  border-color: var(--hp-strong-rule);
-}
-
-.hex-planner .hp-capsule:focus-visible {
-  outline: 2px solid rgba(49, 38, 59, 0.55);
-  outline-offset: 2px;
-}
-
-/* Clean 1px native select */
-.hex-planner .hp-select {
-  height: 38px;
-  width: 100%;
-  border-radius: 1px;
-  border: 1px solid var(--hp-rule);
-  background-color: var(--hp-canvas);
-  color: var(--hp-ink);
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 400;
-  transition: border-color 0.2s ease;
-}
-
-.hex-planner .hp-select:hover {
-  border-color: var(--hp-strong-rule);
-}
-
-.hex-planner .hp-select:focus {
-  outline: none;
-  border-color: var(--hp-eggplant);
-}
-
-.hex-planner .hp-select:focus-visible {
-  outline: 2px solid rgba(49, 38, 59, 0.55);
-  outline-offset: 2px;
-}
-
-/* Custom rose-quartz timeline scrubber */
+/* Custom timeline range slider (dark starlight hairline track + crisp white/violet thumb) */
 .hex-planner .hp-range {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 3px;
-  background: #3a3138;
-  border-radius: 1px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
   outline: none;
   cursor: pointer;
 }
 
 .hex-planner .hp-range:focus-visible {
-  outline: 2px solid #f5c0c0;
-  outline-offset: 6px;
+  outline: 2px solid rgba(167, 139, 250, 0.55);
+  outline-offset: 4px;
 }
 
 .hex-planner .hp-range::-webkit-slider-thumb {
@@ -397,24 +31,88 @@
   appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 1px;
-  background: #f5c0c0;
-  border: 1px solid #14141c;
-  box-shadow: 0 0 0 2px rgba(245, 192, 192, 0.22);
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18), 0 2px 6px rgba(0, 0, 0, 0.55);
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .hex-planner .hp-range::-webkit-slider-thumb:hover {
-  transform: scale(1.12);
-  background: #ffffff;
+  transform: scale(1.14);
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.32), 0 2px 8px rgba(0, 0, 0, 0.65);
 }
 
 .hex-planner .hp-range::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  border-radius: 1px;
-  background: #f5c0c0;
-  border: 1px solid #14141c;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18), 0 2px 6px rgba(0, 0, 0, 0.55);
   cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hex-planner .hp-range::-moz-range-thumb:hover {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.32), 0 2px 8px rgba(0, 0, 0, 0.65);
+}
+
+/* Spectral SVG animations for KanpurNetworkDiagram */
+@keyframes hp-flow-dash {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hp-node-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes hp-star-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.92;
+  }
+}
+
+.hex-planner .hp-flow-arc {
+  stroke-dasharray: 6 10;
+  animation: hp-flow-dash 1.8s linear infinite;
+}
+
+.hex-planner .hp-node-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hp-node-pulse 2.6s ease-in-out infinite;
+}
+
+.hex-planner .hp-starburst {
+  animation: hp-star-twinkle 3.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hex-planner .hp-flow-arc,
+  .hex-planner .hp-node-ring,
+  .hex-planner .hp-starburst {
+    animation: none;
+  }
 }

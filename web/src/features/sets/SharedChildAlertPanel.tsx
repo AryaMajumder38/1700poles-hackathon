@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, Layers, ShieldAlert } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import type {
   ActiveGodown,
   SetImbalanceRow,
@@ -9,7 +9,7 @@ import type {
 } from "@/types/lumino";
 import {
   computeSharedChildCollisions,
-  formatQty,
+  formatQtyNumber,
   SHARED_BOLT_CODE,
   shortGodown,
 } from "./setsUtils";
@@ -79,192 +79,241 @@ export default function SharedChildAlertPanel({
   return (
     <section
       aria-label="Shared Child Bottleneck Alert Panel"
-      className="rounded-xl border border-amber-300/80 bg-white p-4 sm:p-5 shadow-xs space-y-4 min-w-0"
+      className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] min-w-0"
     >
       {/* Panel Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 shadow-xs">
-            <ShieldAlert className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-950">
-                SHARED CHILD CONTENTION ALERT
-              </span>
-              <span className="font-mono text-xs font-semibold text-slate-600">
-                {SHARED_BOLT_CODE} • UOM: MT
-              </span>
-            </div>
-            <h3 className="mt-1 text-base font-bold text-slate-900">
-              G.I. Nuts &amp; Bolts (M16×65 MM) — Cross-Set Competition Monitor
+      <div className="flex flex-col gap-4 p-5 sm:p-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-2.5">
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Shared child contention
             </h3>
-            <p className="mt-0.5 text-xs text-slate-600">
-              Shared by <strong>all 3 sets</strong> (1.071 Pole Clamps, 1.077
-              1-Ph Boxes, 1.078 3-Ph Boxes). Below are godown-months where{" "}
-              <code className="font-mono font-semibold">{SHARED_BOLT_CODE}</code>{" "}
-              simultaneously bottlenecks 2+ sets or where combined MT demand
-              across sets exceeds on-hand godown MT stock.
-            </p>
+            <span className="font-mono text-xs text-[#898989]">
+              {SHARED_BOLT_CODE}
+            </span>
           </div>
+          <p className="mt-0.5 text-sm text-[#a0a0a0]">
+            G.I. Nuts &amp; Bolts (MT) demand colliding across sets 1.071,
+            1.077, and 1.078.
+          </p>
+          <details className="mt-2 group">
+            <summary className="inline-flex items-center gap-1 text-xs font-medium text-[#898989] hover:text-[#e7e7e7] transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50">
+              About shared contention
+              <ChevronDown className="h-3.5 w-3.5 text-[#898989] transition-transform duration-200 group-open:rotate-180" />
+            </summary>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[#a0a0a0]">
+              <span className="font-mono text-[#e7e7e7]">
+                {SHARED_BOLT_CODE}
+              </span>{" "}
+              (G.I. Nuts &amp; Bolts M16×65 MM, stocked in MT) is required by
+              all 3 assembly sets. Rows below flag godown-months where this
+              shared stock simultaneously bottlenecks 2+ sets or where combined
+              3-set MT demand exceeds on-hand godown stock.
+            </p>
+          </details>
         </div>
 
-        {/* Summary Counters */}
-        <div className="flex flex-wrap gap-2 self-start">
-          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-center">
-            <div className="text-lg font-bold tabular-nums text-rose-900">
+        {/* Inline Counters (Divider-Separated, Newsreader Serif Numerals) */}
+        <div className="flex shrink-0 items-center divide-x divide-white/[0.06] self-start">
+          <div className="pr-5">
+            <div className="flex items-center gap-1.5 text-xs font-normal text-[#898989]">
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-rose-400"
+                aria-hidden="true"
+              />
+              3 sets blocked
+            </div>
+            <div
+              className={`mt-2 font-serif font-normal text-[28px] leading-none tracking-[-0.02em] tabular-nums ${
+                summary.threeSet > 0 ? "text-rose-400" : "text-white"
+              }`}
+            >
               {summary.threeSet}
             </div>
-            <div className="text-[10px] font-semibold uppercase text-rose-700">
-              All 3 Sets Blocked
-            </div>
           </div>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-center">
-            <div className="text-lg font-bold tabular-nums text-amber-900">
+
+          <div className="px-5">
+            <div className="flex items-center gap-1.5 text-xs font-normal text-[#898989]">
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-amber-300"
+                aria-hidden="true"
+              />
+              2 sets blocked
+            </div>
+            <div className="mt-2 font-serif font-normal text-[28px] leading-none tracking-[-0.02em] tabular-nums text-white">
               {summary.twoSet}
             </div>
-            <div className="text-[10px] font-semibold uppercase text-amber-700">
-              2 Sets Blocked
-            </div>
           </div>
+
           {summary.combinedOnly > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-center">
-              <div className="text-lg font-bold tabular-nums text-slate-900">
-                {summary.combinedOnly}
+            <div className="pl-5">
+              <div className="flex items-center gap-1.5 text-xs font-normal text-[#898989]">
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-violet-400"
+                  aria-hidden="true"
+                />
+                Pool deficit
               </div>
-              <div className="text-[10px] font-semibold uppercase text-slate-600">
-                Pool Deficit
+              <div className="mt-2 font-serif font-normal text-[28px] leading-none tracking-[-0.02em] tabular-nums text-white">
+                {summary.combinedOnly}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Godown Filter Pills */}
+      {/* Godown Filter Pill Segmented Control */}
       {!lockedGodown && collisions.length > 0 && (
-        <div
-          role="group"
-          aria-label="Filter collisions by godown"
-          className="flex flex-wrap items-center gap-1.5"
-        >
-          <button
-            type="button"
-            aria-pressed={effectiveGodownFilter === "ALL"}
-            onClick={() => setSelectedGodownFilter("ALL")}
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
-              effectiveGodownFilter === "ALL"
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
+        <div className="border-t border-white/[0.06] px-5 sm:px-6 py-3.5">
+          <div
+            role="group"
+            aria-label="Filter collisions by godown"
+            className="inline-flex flex-wrap items-center gap-1 rounded-full bg-white/[0.05] border border-white/[0.06] p-1"
           >
-            All Godowns ({collisions.length})
-          </button>
-          {Array.from(summary.byGodown.entries())
-            .sort((a, b) => b[1] - a[1])
-            .map(([godown, count]) => (
-              <button
-                key={godown}
-                type="button"
-                aria-pressed={effectiveGodownFilter === godown}
-                onClick={() => setSelectedGodownFilter(godown)}
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
-                  effectiveGodownFilter === godown
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {shortGodown(godown)} ({count})
-              </button>
-            ))}
+            <button
+              type="button"
+              aria-pressed={effectiveGodownFilter === "ALL"}
+              onClick={() => setSelectedGodownFilter("ALL")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
+                effectiveGodownFilter === "ALL"
+                  ? "bg-white text-black shadow-sm"
+                  : "text-[#a0a0a0] hover:text-white"
+              }`}
+            >
+              All ({collisions.length})
+            </button>
+            {Array.from(summary.byGodown.entries())
+              .sort((a, b) => b[1] - a[1])
+              .map(([godown, count]) => (
+                <button
+                  key={godown}
+                  type="button"
+                  aria-pressed={effectiveGodownFilter === godown}
+                  onClick={() => setSelectedGodownFilter(godown)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
+                    effectiveGodownFilter === godown
+                      ? "bg-white text-black shadow-sm"
+                      : "text-[#a0a0a0] hover:text-white"
+                  }`}
+                >
+                  {shortGodown(godown)} ({count})
+                </button>
+              ))}
+          </div>
         </div>
       )}
 
       {/* Collisions Table */}
       {filteredCollisions.length === 0 ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900">
-          No multi-set {SHARED_BOLT_CODE} collisions detected for this filter.
+        <div className="flex items-center gap-2 border-t border-white/[0.06] px-5 sm:px-6 py-6 text-sm text-[#a0a0a0]">
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]"
+            aria-hidden="true"
+          />
+          No multi-set{" "}
+          <span className="font-mono text-xs text-[#e7e7e7]">
+            {SHARED_BOLT_CODE}
+          </span>{" "}
+          collisions detected for this filter.
         </div>
       ) : (
-        <div className="space-y-2.5">
-          <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-xs">
-              <thead className="bg-slate-50 text-left font-semibold text-slate-600">
+        <div className="border-t border-white/[0.06]">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full text-left">
+              <thead className="border-b border-white/[0.06] bg-white/[0.025] text-xs font-normal text-[#898989]">
                 <tr>
-                  <th className="px-3 py-2">Godown</th>
-                  <th className="px-3 py-2">Month</th>
-                  <th className="px-3 py-2">Bottlenecked Sets</th>
-                  <th className="px-3 py-2 text-right">
-                    On-Hand {SHARED_BOLT_CODE}
+                  <th className="px-5 sm:px-6 py-2.5 font-normal">Godown</th>
+                  <th className="px-4 py-2.5 font-normal">Month</th>
+                  <th className="px-4 py-2.5 font-normal">Blocked sets</th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    On-hand stock
                   </th>
-                  <th className="px-3 py-2 text-right">
-                    Combined 3-Set Need
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Combined need
                   </th>
-                  <th className="px-3 py-2 text-right">Combined MT Deficit</th>
-                  <th className="px-3 py-2 text-right">Inspect</th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Deficit
+                  </th>
+                  <th className="px-5 sm:px-6 py-2.5 text-right font-normal">
+                    Inspect
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-white/[0.05] text-sm">
                 {visibleEvents.map((ev) => {
                   const targetSet =
-                    ev.bottleneckedSets[0] ?? ev.affectedSets[0]?.set_no ?? "1.071";
+                    ev.bottleneckedSets[0] ??
+                    ev.affectedSets[0]?.set_no ??
+                    "1.071";
                   const isThreeSet = ev.bottleneckedSets.length === 3;
+
                   return (
                     <tr
                       key={`${ev.godown}-${ev.month}`}
-                      className="hover:bg-amber-50/40 transition-colors"
+                      className="hover:bg-white/[0.03] transition-colors duration-150"
                     >
-                      <td className="px-3 py-2 font-semibold text-slate-900 whitespace-nowrap">
+                      <td className="px-5 sm:px-6 py-3 font-medium text-[#e7e7e7] whitespace-nowrap">
                         {shortGodown(ev.godown)}
                       </td>
-                      <td className="px-3 py-2 font-mono text-slate-700 whitespace-nowrap">
+                      <td className="px-4 py-3 tabular-nums text-[#a0a0a0] whitespace-nowrap">
                         {ev.month}
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap items-center gap-1">
-                          {ev.bottleneckedSets.length > 0 ? (
-                            ev.bottleneckedSets.map((setNo) => (
-                              <span
-                                key={setNo}
-                                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[11px] font-bold ${
-                                  isThreeSet
-                                    ? "bg-rose-100 text-rose-900"
-                                    : "bg-amber-100 text-amber-900"
-                                }`}
-                              >
-                                <Layers className="h-2.5 w-2.5" />
-                                {setNo}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700">
-                              <AlertTriangle className="h-3 w-3 text-amber-600" />
-                              Combined Pool Contention (
-                              {ev.affectedSets.map((s) => s.set_no).join(", ")})
-                            </span>
-                          )}
-                        </div>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {ev.bottleneckedSets.length > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#e7e7e7]">
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                isThreeSet
+                                  ? "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.75)]"
+                                  : "bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.7)]"
+                              }`}
+                              aria-hidden="true"
+                            />
+                            Sets {ev.bottleneckedSets.join(", ")}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-[#a0a0a0]">
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-violet-400"
+                              aria-hidden="true"
+                            />
+                            Pool contention (
+                            {ev.affectedSets.map((s) => s.set_no).join(", ")})
+                          </span>
+                        )}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
-                        {formatQty(ev.availableMt, "MT")}
+                      <td className="px-4 py-3 text-right tabular-nums text-[#e7e7e7] whitespace-nowrap">
+                        {formatQtyNumber(ev.availableMt, "MT")}
+                        <span className="ml-1 text-xs text-[#898989]">MT</span>
                       </td>
-                      <td className="px-3 py-2 text-right font-mono tabular-nums text-slate-700 whitespace-nowrap">
-                        {formatQty(ev.combinedRequiredMt, "MT")}
+                      <td className="px-4 py-3 text-right tabular-nums text-[#a0a0a0] whitespace-nowrap">
+                        {formatQtyNumber(ev.combinedRequiredMt, "MT")}
+                        <span className="ml-1 text-xs text-[#898989]">MT</span>
                       </td>
-                      <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-rose-700 whitespace-nowrap">
+                      <td
+                        className={`px-4 py-3 text-right tabular-nums whitespace-nowrap ${
+                          ev.deficitMt > 0
+                            ? "font-medium text-rose-400"
+                            : "text-white/25"
+                        }`}
+                      >
                         {ev.deficitMt > 0
-                          ? `-${formatQty(ev.deficitMt, "MT")}`
-                          : "0 MT"}
+                          ? `-${formatQtyNumber(ev.deficitMt, "MT")}`
+                          : "0"}
+                        <span className="ml-1 text-xs font-normal text-[#898989]">
+                          MT
+                        </span>
                       </td>
-                      <td className="px-3 py-2 text-right whitespace-nowrap">
+                      <td className="px-5 sm:px-6 py-3 text-right whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() =>
                             onJumpToCell(targetSet, ev.godown, ev.month)
                           }
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.06] px-3 py-1 text-xs font-medium text-[#e7e7e7] hover:bg-white/[0.12] hover:text-white active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 transition-all duration-150 cursor-pointer"
                         >
-                          Drill Down
-                          <ArrowRight className="h-3 w-3" />
+                          Drill down
+                          <ArrowRight className="h-3.5 w-3.5 text-[#a0a0a0]" />
                         </button>
                       </td>
                     </tr>
@@ -275,7 +324,7 @@ export default function SharedChildAlertPanel({
           </div>
 
           {filteredCollisions.length > 12 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] px-5 sm:px-6 py-3.5 text-xs text-[#898989]">
               <span>
                 Showing {visibleEvents.length} of {filteredCollisions.length}{" "}
                 flagged godown-months (
@@ -284,7 +333,7 @@ export default function SharedChildAlertPanel({
               <button
                 type="button"
                 onClick={() => setShowAll((prev) => !prev)}
-                className="rounded font-semibold text-slate-800 underline underline-offset-2 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 cursor-pointer"
+                className="rounded font-medium text-[#e7e7e7] underline decoration-white/25 underline-offset-4 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer"
               >
                 {showAll
                   ? "Show top 12"
