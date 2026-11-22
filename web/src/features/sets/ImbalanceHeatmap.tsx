@@ -1,13 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  AlertOctagon,
-  AlertTriangle,
-  CheckCircle2,
-  Flame,
-  PackageX,
-} from "lucide-react";
 import type {
   ActiveGodown,
   SetDefinition,
@@ -16,6 +9,7 @@ import type {
 import {
   formatCount,
   formatQty,
+  formatQtyNumber,
   getCellVisualStatus,
   isChildOnlyStrandedRow,
   shortGodown,
@@ -41,10 +35,13 @@ interface ImbalanceHeatmapProps {
 }
 
 const CELL_COLORS: Record<CellVisualStatus, string> = {
-  balanced: "bg-emerald-500 hover:bg-emerald-600",
-  warning: "bg-amber-400 hover:bg-amber-500",
-  critical: "bg-rose-500 hover:bg-rose-600",
-  zero: "bg-slate-200 hover:bg-slate-300",
+  balanced:
+    "bg-emerald-400/80 hover:bg-emerald-400 hover:shadow-[0_0_10px_rgba(52,211,153,0.45)]",
+  warning:
+    "bg-amber-300/85 hover:bg-amber-300 hover:shadow-[0_0_10px_rgba(252,211,77,0.45)]",
+  critical:
+    "bg-rose-400/85 hover:bg-rose-400 hover:shadow-[0_0_10px_rgba(251,113,133,0.5)]",
+  zero: "bg-white/[0.05] hover:bg-white/[0.12]",
 };
 
 export default function ImbalanceHeatmap({
@@ -58,7 +55,7 @@ export default function ImbalanceHeatmap({
   selectedMonth,
   onSelectCell,
 }: ImbalanceHeatmapProps) {
-  // Per-set imbalance summary for the set selector pills
+  // Per-set imbalance summary for the set selector cards
   const setPillCounts = useMemo(() => {
     const counts = new Map<
       string,
@@ -88,7 +85,10 @@ export default function ImbalanceHeatmap({
     let critical = 0;
     let zero = 0;
     let peakStrandedRow: SetImbalanceRow | null = null;
-    const bnFreq = new Map<string, { code: string; name: string; count: number }>();
+    const bnFreq = new Map<
+      string,
+      { code: string; name: string; count: number }
+    >();
 
     for (const row of rowsForMode) {
       if (row.set_no !== selectedSetNo) continue;
@@ -163,188 +163,237 @@ export default function ImbalanceHeatmap({
   return (
     <section
       aria-label="Set Imbalance Heatmap"
-      className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-5 min-w-0"
+      className="space-y-6 min-w-0"
     >
-      {/* Set Selector Tabs */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 flex-1">
-          {sets.map((s) => {
-            const isSelected = s.set_no === selectedSetNo;
-            const c = setPillCounts.get(s.set_no) ?? {
-              balanced: 0,
-              warning: 0,
-              critical: 0,
-              zero: 0,
-            };
-            const imbalancedTotal = c.warning + c.critical;
-            return (
-              <button
-                key={s.set_no}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => onSelectSet(s.set_no)}
-                className={`rounded-xl border p-3 text-left transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
-                  isSelected
-                    ? "border-slate-900 bg-slate-900 text-white shadow-xs"
-                    : "border-slate-200 bg-slate-50/70 text-slate-800 hover:border-slate-300 hover:bg-slate-100"
+      {/* Set Selector Cards */}
+      <div
+        role="group"
+        aria-label="Select assembly kit"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+      >
+        {sets.map((s) => {
+          const isSelected = s.set_no === selectedSetNo;
+          const c = setPillCounts.get(s.set_no) ?? {
+            balanced: 0,
+            warning: 0,
+            critical: 0,
+            zero: 0,
+          };
+          const imbalancedTotal = c.warning + c.critical;
+
+          return (
+            <button
+              key={s.set_no}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSelectSet(s.set_no)}
+              className={`rounded-[20px] border bg-[#1a1a1a] p-4 sm:p-5 text-left transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] ${
+                isSelected
+                  ? "border-white/40 bg-white/[0.05] shadow-[0_0_0_1px_rgba(255,255,255,0.22)]"
+                  : "border-white/[0.06] hover:border-white/20 hover:bg-white/[0.02]"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-normal text-[#898989]">
+                  Set {s.set_no}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs tabular-nums text-[#a0a0a0]">
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      imbalancedTotal > 0
+                        ? "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.7)]"
+                        : "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {imbalancedTotal} imbalanced
+                </span>
+              </div>
+              <div
+                className={`mt-2 text-[17px] font-medium ${
+                  isSelected ? "text-white" : "text-[#e7e7e7]"
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`font-mono text-xs font-bold ${
-                      isSelected ? "text-amber-400" : "text-slate-600"
-                    }`}
-                  >
-                    SET {s.set_no}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
-                      isSelected
-                        ? "bg-rose-500/25 text-rose-200"
-                        : "bg-rose-100 text-rose-800"
-                    }`}
-                  >
-                    {imbalancedTotal} imbalanced
-                  </span>
-                </div>
-                <div className="mt-1 text-sm font-bold leading-snug">
-                  {shortSetLabel(s.set_no)}
-                </div>
-                <div
-                  className={`mt-0.5 font-mono text-[11px] ${
-                    isSelected ? "text-slate-300" : "text-slate-500"
-                  }`}
-                >
-                  {s.parent_code} ({s.parent_unit}) • {s.children.length} children
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                {shortSetLabel(s.set_no)}
+              </div>
+              <div className="mt-1.5 flex items-center gap-1.5 text-xs text-[#898989]">
+                <span className="font-mono text-[#a0a0a0]">
+                  {s.parent_code}
+                </span>
+                <span className="text-white/20">·</span>
+                <span>{s.parent_unit}</span>
+                <span className="text-white/20">·</span>
+                <span>{s.children.length} children</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Selected Set KPI Summary Strip */}
+      {/* Selected Set KPI Summary Strip (Single Raised Charcoal Card) */}
       {activeSet && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
-            <div className="flex items-center justify-between text-xs font-medium text-emerald-900">
-              <span>Balanced / Ready</span>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        <div className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]">
+          <div className="grid grid-cols-1 divide-y divide-white/[0.06] sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.06]">
+            <div className="p-5 sm:p-6 min-w-0 max-lg:sm:border-r max-lg:sm:border-white/[0.06]">
+              <div className="flex items-center gap-1.5 text-xs font-normal text-[#898989]">
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-emerald-400"
+                  aria-hidden="true"
+                />
+                Balanced
+              </div>
+              <div className="mt-3 flex items-baseline">
+                <span className="font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] tabular-nums text-white">
+                  {stats.balanced}
+                </span>
+                <span className="ml-1.5 font-sans text-xs tabular-nums text-[#898989]">
+                  / {godowns.length * months.length} cells
+                </span>
+              </div>
             </div>
-            <div className="mt-1 text-xl font-bold tabular-nums text-emerald-950">
-              {stats.balanced}{" "}
-              <span className="text-xs font-normal text-emerald-700">
-                / {godowns.length * months.length} cells
-              </span>
-            </div>
-          </div>
 
-          <div className="rounded-lg border border-rose-200 bg-rose-50/50 p-3">
-            <div className="flex items-center justify-between text-xs font-medium text-rose-900">
-              <span>Critical / Warning</span>
-              <AlertOctagon className="h-4 w-4 text-rose-600" />
+            <div className="p-5 sm:p-6 min-w-0">
+              <div className="flex items-center gap-1.5 text-xs font-normal text-[#898989]">
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-rose-400"
+                  aria-hidden="true"
+                />
+                Critical
+              </div>
+              <div className="mt-3 flex items-baseline gap-2.5">
+                <span
+                  className={`font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] tabular-nums ${
+                    stats.critical > 0 ? "text-rose-400" : "text-white"
+                  }`}
+                >
+                  {stats.critical}
+                </span>
+                <span className="inline-flex items-center gap-1.5 font-sans text-xs tabular-nums text-[#a0a0a0]">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-amber-300"
+                    aria-hidden="true"
+                  />
+                  {stats.warning} warning
+                </span>
+              </div>
             </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-xl font-bold tabular-nums text-rose-950">
-                {stats.critical}
-              </span>
-              <span className="text-xs font-semibold tabular-nums text-amber-700">
-                + {stats.warning} warn
-              </span>
-            </div>
-          </div>
 
-          <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-            <div className="flex items-center justify-between text-xs font-medium text-amber-900">
-              <span>Peak Stranded Parent</span>
-              <Flame className="h-4 w-4 text-amber-600" />
+            <div className="p-5 sm:p-6 min-w-0 max-lg:sm:border-t max-lg:sm:border-r max-lg:sm:border-white/[0.06]">
+              <div className="text-xs font-normal text-[#898989]">
+                Peak stranded
+              </div>
+              <div className="mt-3 flex items-baseline">
+                <span className="font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] tabular-nums text-white">
+                  {worstCell
+                    ? formatQtyNumber(
+                        worstCell.stranded_parent_qty,
+                        activeSet.parent_unit
+                      )
+                    : "0"}
+                </span>
+                <span className="ml-1.5 font-sans text-xs text-[#898989]">
+                  {activeSet.parent_unit}
+                </span>
+              </div>
+              {worstCell && worstCell.stranded_parent_qty > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelectCell(worstCell.godown, worstCell.month, true)
+                  }
+                  className="mt-2 rounded text-xs text-[#a0a0a0] underline decoration-white/20 underline-offset-4 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer"
+                >
+                  {shortGodown(worstCell.godown)} · {worstCell.month}
+                </button>
+              )}
             </div>
-            <div className="mt-1 text-xl font-bold tabular-nums text-amber-950">
-              {worstCell
-                ? formatQty(worstCell.stranded_parent_qty, activeSet.parent_unit)
-                : `0 ${activeSet.parent_unit}`}
-            </div>
-            {worstCell && worstCell.stranded_parent_qty > 0 && (
-              <button
-                type="button"
-                onClick={() =>
-                  onSelectCell(worstCell.godown, worstCell.month, true)
-                }
-                className="mt-0.5 rounded text-[11px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 cursor-pointer"
+
+            <div className="p-5 sm:p-6 min-w-0 max-lg:sm:border-t max-lg:sm:border-white/[0.06]">
+              <div className="text-xs font-normal text-[#898989]">
+                #1 bottleneck
+              </div>
+              {stats.topBottleneck ? (
+                <div className="mt-3 truncate font-mono text-lg font-medium leading-8 tracking-tight text-white">
+                  {stats.topBottleneck.code}
+                </div>
+              ) : (
+                <div className="mt-3 font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] text-[#898989]">
+                  None
+                </div>
+              )}
+              <div
+                className="mt-1.5 truncate text-xs text-[#898989]"
+                title={stats.topBottleneck?.name}
               >
-                Jump to {shortGodown(worstCell.godown)} ({worstCell.month})
-              </button>
-            )}
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between text-xs font-medium text-slate-600">
-              <span>#1 Bottleneck Item</span>
-              <PackageX className="h-4 w-4 text-slate-500" />
-            </div>
-            <div className="mt-1 font-mono text-sm font-bold text-slate-900 truncate">
-              {stats.topBottleneck ? stats.topBottleneck.code : "None"}
-            </div>
-            <div className="mt-0.5 text-[11px] text-slate-500 truncate">
-              {stats.topBottleneck
-                ? `${stats.topBottleneck.count} cells blocked • ${stats.topBottleneck.name}`
-                : "All active cells balanced"}
+                {stats.topBottleneck
+                  ? `${stats.topBottleneck.count} cells · ${stats.topBottleneck.name}`
+                  : "All active cells balanced"}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Heatmap Matrix */}
-      <div className="space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Heatmap Matrix Card */}
+      <div className="rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-5 sm:p-6 space-y-5 min-w-0">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">
-              Godown × Month Kit Balance Matrix — Set {selectedSetNo} (
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Godown × month matrix — Set {selectedSetNo} (
               {shortSetLabel(selectedSetNo)})
             </h3>
-            <p className="text-xs text-slate-500">
-              Click any cell to inspect exact parent stock, buildable sets,
-              bottleneck child, and stranded surpluses.
+            <p className="mt-0.5 text-sm text-[#a0a0a0]">
+              Select any cell to inspect parent stock, buildable sets, and
+              bottlenecks.
             </p>
           </div>
 
-          {/* Color Legend */}
-          <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-600">
+          {/* Single-line Dot Legend */}
+          <div className="flex flex-wrap items-center gap-3.5 text-xs text-[#a0a0a0] whitespace-nowrap">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-xs bg-emerald-500" />
+              <span
+                className="h-2 w-2 rounded-full bg-emerald-400/85"
+                aria-hidden="true"
+              />
               Balanced
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-xs bg-amber-400" />
-              Warning (&lt;50% stranded / 0 parent)
+              <span
+                className="h-2 w-2 rounded-full bg-amber-300/85"
+                aria-hidden="true"
+              />
+              Warning
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-xs bg-rose-500" />
-              Critical (≥50% blocked)
+              <span
+                className="h-2 w-2 rounded-full bg-rose-400/85"
+                aria-hidden="true"
+              />
+              Critical
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-xs bg-slate-200 border border-slate-300" />
-              Zero Stock
+              <span
+                className="h-2 w-2 rounded-full bg-white/[0.12] border border-white/[0.14]"
+                aria-hidden="true"
+              />
+              Zero stock
             </span>
           </div>
         </div>
 
-        <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
-          <div
-            style={{ minWidth: `${heatmapMinWidthPx}px` }}
-            className="bg-white p-3"
-          >
+        <div className="overflow-x-auto max-w-full">
+          <div style={{ minWidth: `${heatmapMinWidthPx}px` }} className="py-1">
             {/* Year Header Row */}
-            <div className="grid grid-cols-[128px_1fr] items-center gap-2 pb-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Active Godown
+            <div className="grid grid-cols-[120px_1fr] items-center gap-3 pb-1.5">
+              <div className="text-[11px] font-normal text-[#898989]">
+                Godown
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-[2px]">
                 {yearGroups.map((yg) => (
                   <div
                     key={yg.year}
                     style={{ flex: yg.count }}
-                    className="border-b border-slate-200 pb-0.5 text-center font-mono text-[11px] font-bold text-slate-600"
+                    className="border-b border-white/[0.06] pb-1 text-center text-[11px] font-medium tabular-nums text-[#a0a0a0]"
                   >
                     {yg.year}
                   </div>
@@ -353,12 +402,13 @@ export default function ImbalanceHeatmap({
             </div>
 
             {/* Month Index Row */}
-            <div className="grid grid-cols-[128px_1fr] items-center gap-2 pb-2">
+            <div className="grid grid-cols-[120px_1fr] items-center gap-3 pb-2">
               <div />
-              <div className="grid gap-1" style={monthGridStyle}>
+              <div className="grid gap-[2px]" style={monthGridStyle}>
                 {months.map((m) => {
                   const mm = m.slice(5, 7);
                   const isWindDown = m >= WIND_DOWN_START;
+                  const isWindDownBoundary = m === WIND_DOWN_START;
                   return (
                     <div
                       key={m}
@@ -367,12 +417,16 @@ export default function ImbalanceHeatmap({
                           ? `${m} (Wind-down phase: receipts ended 2026-07)`
                           : m
                       }
-                      className={`text-center font-mono text-[9px] leading-none ${
+                      className={`relative text-center text-[11px] leading-none tabular-nums ${
                         m === selectedMonth
-                          ? "font-bold text-slate-950"
+                          ? "font-semibold text-white"
                           : isWindDown
-                            ? "font-semibold text-amber-700"
-                            : "text-slate-400"
+                            ? "font-medium text-amber-300/80"
+                            : "text-[#898989]"
+                      } ${
+                        isWindDownBoundary
+                          ? "before:content-[''] before:pointer-events-none before:absolute before:-left-[1.5px] before:-top-1 before:-bottom-1 before:w-px before:bg-amber-300/45"
+                          : ""
                       }`}
                     >
                       {mm}
@@ -389,18 +443,20 @@ export default function ImbalanceHeatmap({
                 return (
                   <div
                     key={godown}
-                    className="grid grid-cols-[128px_1fr] items-center gap-2"
+                    className="grid grid-cols-[120px_1fr] items-center gap-3"
                   >
                     <div
-                      className={`truncate pr-2 text-xs font-semibold ${
-                        isSelectedRow ? "text-slate-950" : "text-slate-700"
+                      className={`truncate text-[11px] transition-colors ${
+                        isSelectedRow
+                          ? "font-medium text-white"
+                          : "font-normal text-[#898989]"
                       }`}
                       title={godown}
                     >
                       {shortGodown(godown)}
                     </div>
 
-                    <div className="grid gap-1" style={monthGridStyle}>
+                    <div className="grid gap-[2px]" style={monthGridStyle}>
                       {months.map((month) => {
                         const row = cellMap.get(`${godown}__${month}`);
                         const status: CellVisualStatus = row
@@ -409,6 +465,7 @@ export default function ImbalanceHeatmap({
                         const isSelected =
                           godown === selectedGodown && month === selectedMonth;
                         const isWindDown = month >= WIND_DOWN_START;
+                        const isWindDownBoundary = month === WIND_DOWN_START;
 
                         const tooltip = row
                           ? [
@@ -431,25 +488,29 @@ export default function ImbalanceHeatmap({
                           : `${shortGodown(godown)} • ${month}`;
 
                         return (
-                          <button
+                          <div
                             key={month}
-                            type="button"
-                            aria-pressed={isSelected}
-                            onClick={() => onSelectCell(godown, month)}
-                            title={tooltip}
-                            aria-label={`${shortGodown(godown)} ${month} ${status}`}
-                            className={`h-7 w-full rounded-[3px] transition-transform cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-1 ${
-                              CELL_COLORS[status]
-                            } ${
-                              isSelected
-                                ? "ring-2 ring-slate-950 ring-offset-1 scale-110 z-10 relative"
-                                : ""
-                            } ${
-                              isWindDown && !isSelected
-                                ? "outline outline-1 outline-slate-900/15"
+                            className={`relative ${
+                              isWindDownBoundary
+                                ? "before:content-[''] before:pointer-events-none before:absolute before:-left-[1.5px] before:-top-1 before:-bottom-1 before:w-px before:bg-amber-300/40"
                                 : ""
                             }`}
-                          />
+                          >
+                            <button
+                              type="button"
+                              aria-pressed={isSelected}
+                              onClick={() => onSelectCell(godown, month)}
+                              title={tooltip}
+                              aria-label={`${shortGodown(godown)} ${month} ${status}`}
+                              className={`block h-7 w-full rounded-[4px] transition-all duration-150 cursor-pointer hover:scale-[1.12] hover:z-20 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-1 focus-visible:ring-offset-[#1a1a1a] ${
+                                CELL_COLORS[status]
+                              } ${
+                                isSelected
+                                  ? "ring-2 ring-white ring-offset-1 ring-offset-[#1a1a1a] z-10 scale-[1.06]"
+                                  : ""
+                              }`}
+                            />
+                          </div>
                         );
                       })}
                     </div>
@@ -457,22 +518,22 @@ export default function ImbalanceHeatmap({
                 );
               })}
             </div>
-
-            {/* Footer note on wind-down phase */}
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
-              <span className="inline-flex items-center gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                Months{" "}
-                <span className="font-mono font-semibold text-amber-700">
-                  2026-08 → 2026-10
-                </span>{" "}
-                mark project wind-down (vendor receipts ceased after 2026-07).
-              </span>
-              <span className="font-mono text-slate-400">
-                Selected: {shortGodown(selectedGodown)} • {selectedMonth}
-              </span>
-            </div>
           </div>
+        </div>
+
+        {/* Footer note on wind-down phase */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3.5 text-xs text-[#898989]">
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block h-3 w-px bg-amber-300/60"
+              aria-hidden="true"
+            />
+            2026-08 to 2026-10 marks wind-down (vendor receipts ended after
+            2026-07).
+          </span>
+          <span className="tabular-nums text-[#a0a0a0]">
+            Selected: {shortGodown(selectedGodown)} · {selectedMonth}
+          </span>
         </div>
       </div>
     </section>

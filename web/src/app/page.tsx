@@ -2,15 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
-  Activity,
-  AlertTriangle,
+  ArrowRight,
   Compass,
   GitCompareArrows,
   Layers,
   RefreshCw,
-  Warehouse,
-  Zap,
 } from "lucide-react";
+import {
+  AtmosphericBackdrop,
+  LuminoEmblem,
+  SpectralYardPrism3D,
+  StarburstIcon,
+  SteepFooter,
+  ThresholdDoorArtwork,
+} from "@/components/SteepArtwork";
 import OpsCopilotDrawer from "@/features/copilot/OpsCopilotDrawer";
 import LedgerView from "@/features/ledger";
 import PlannerView from "@/features/planner";
@@ -25,6 +30,7 @@ import type {
 type TabId = "ledger" | "planner" | "sets";
 
 const FLAGSHIP_ITEM_CODE = "MPO010014";
+const OPEN_COPILOT_EVENT = "lumino:open-copilot";
 
 function formatQty(value: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -43,11 +49,27 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const workspaceRef = useRef<HTMLDivElement | null>(null);
 
   function handleRetry() {
     setLoading(true);
     setError(null);
     setReloadNonce((n) => n + 1);
+  }
+
+  function handleOpenCopilot() {
+    window.dispatchEvent(new CustomEvent(OPEN_COPILOT_EVENT));
+  }
+
+  function handleJumpToTab(tab: TabId) {
+    setActiveTab(tab);
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    workspaceRef.current?.scrollIntoView({
+      behavior: prefersReduced ? "auto" : "smooth",
+      block: "start",
+    });
   }
 
   useEffect(() => {
@@ -193,164 +215,312 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
-      {/* Global Control-Room Top Navbar */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 text-slate-50 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Left: Brand Mark */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 shadow-sm">
-                <Zap className="h-4.5 w-4.5" />
-              </div>
-              <div className="leading-tight min-w-0">
-                <div className="text-xs font-bold uppercase tracking-wider text-amber-400 truncate">
-                  Lumino Industries • Bold Bytes
-                </div>
-                <div className="font-mono text-[11px] text-slate-400 truncate">
-                  Kanpur RDSS Supply Chain
-                </div>
-              </div>
+    <div className="min-h-screen flex flex-col bg-[#121212] text-[#e7e7e7]">
+      {/* Fixed/Sticky 64px Steep Frosted Header */}
+      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#222222]/80 backdrop-blur-[16px]">
+        <div className="mx-auto flex min-h-16 max-w-[1280px] flex-wrap items-center justify-between gap-3 px-4 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0 lg:px-8">
+          {/* Left: Minimal Geometric Lumino Mark */}
+          <div className="flex min-w-0 items-center gap-2.5">
+            <LuminoEmblem className="h-6 w-6 shrink-0" />
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span className="text-[15px] font-medium tracking-[-0.01em] text-white">
+                Lumino
+              </span>
+              <span className="hidden truncate text-[13px] text-[#898989] sm:inline">
+                Kanpur RDSS
+              </span>
             </div>
+          </div>
 
-            {/* Center: 3-View Navigation Tabs */}
-            <div
-              role="tablist"
-              aria-label="Planner Modules"
-              className="order-3 w-full sm:order-2 sm:w-auto flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/90 p-1"
-            >
-              {tabs.map((tab, index) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    id={`tab-${tab.id}`}
-                    ref={(el) => {
-                      tabRefs.current[index] = el;
-                    }}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`tabpanel-${tab.id}`}
-                    tabIndex={isActive ? 0 : -1}
-                    onClick={() => setActiveTab(tab.id)}
-                    onKeyDown={(e) => handleTabKeyDown(e, index)}
-                    title={tab.subtitle}
-                    className={`flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
-                      isActive
-                        ? "bg-amber-500 text-slate-950 shadow-xs"
-                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
+          {/* Center: Pill Segmented Tablist (WAI-ARIA compliant) */}
+          <div
+            role="tablist"
+            aria-label="Planner Modules"
+            className="order-3 flex w-full items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.05] p-1 sm:order-2 sm:w-auto"
+          >
+            {tabs.map((tab, index) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  id={`tab-${tab.id}`}
+                  ref={(el) => {
+                    tabRefs.current[index] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`tabpanel-${tab.id}`}
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={(e) => handleTabKeyDown(e, index)}
+                  title={tab.subtitle}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] sm:flex-initial ${
+                    isActive
+                      ? "bg-white font-medium text-black shadow-sm"
+                      : "font-normal text-[#a0a0a0] hover:text-white"
+                  }`}
+                >
+                  <Icon
+                    className={`h-3.5 w-3.5 shrink-0 ${
+                      isActive ? "text-black" : "text-[#898989]"
                     }`}
-                  >
-                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+                  />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-            {/* Right: Global RBAC Profile Switcher */}
-            <div className="order-2 sm:order-3 flex items-center">
-              <NavbarProfileDropdown metadata={metadata} />
-            </div>
+          {/* Right: Steep Dark RBAC Profile Switcher */}
+          <div className="order-2 flex items-center sm:order-3">
+            <NavbarProfileDropdown metadata={metadata} />
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-6 min-w-0">
-        {/* Global KPI Strip (3 Columns) */}
-        {error ? (
-          <div
-            role="alert"
-            className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <span>{error}</span>
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-900 shadow-xs hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1 cursor-pointer sm:self-center"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Retry
-            </button>
+      {/* Compact Editorial Opening Stage bathed in AtmosphericBackdrop */}
+      <section className="relative overflow-hidden">
+        <AtmosphericBackdrop />
+
+        <div className="relative z-10 mx-auto w-full max-w-[1280px] px-4 pt-7 pb-6 sm:px-6 sm:pt-9 sm:pb-7 lg:px-8">
+          <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-10">
+            {/* Asymmetric Editorial Promise */}
+            <div className="min-w-0">
+              <p className="text-xs font-normal text-[#898989]">
+                Kanpur RDSS · 44-month consumption-led ledger
+              </p>
+              <h1 className="mt-2 font-serif font-normal text-[36px] leading-[1.12] tracking-[-0.025em] text-[#e7e7e7] sm:text-[48px] lg:text-[56px]">
+                See every pole, ship only what sites need.
+              </h1>
+              <p className="mt-3 max-w-xl text-base leading-relaxed text-[#a0a0a0] sm:text-lg">
+                Track godown and contractor stock across 6 Kanpur yards, replay
+                zero-lookahead orders, and resolve kit bottlenecks.
+              </p>
+
+              <div className="mt-5 flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleJumpToTab("planner")}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-medium text-black transition-all duration-200 hover:opacity-90 active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] cursor-pointer"
+                >
+                  <span>Explore causal replay</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenCopilot}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.06] px-4 text-sm font-medium text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.11] active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] cursor-pointer"
+                >
+                  <StarburstIcon className="h-3.5 w-3.5 text-violet-300" />
+                  <span>Ask Copilot</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Interactive 3D Isometric Spectral Yard Rig */}
+            <div className="min-w-0">
+              <SpectralYardPrism3D className="mx-auto max-w-[400px] lg:max-w-[440px]" />
+            </div>
           </div>
-        ) : (
-          <section
-            aria-label="Global Project KPIs"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-3"
-          >
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs min-w-0">
-              <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                <span>PCC Poles Received vs Erected</span>
-                <Activity className="h-4 w-4 text-amber-600 shrink-0" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tabular-nums text-slate-900">
-                  {loading || !flagshipStats
-                    ? "—"
-                    : `${formatQty(flagshipStats.totalReceipts)} ${flagshipStats.unit}`}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-slate-500 tabular-nums">
-                {loading || !flagshipStats
-                  ? "Loading MPO010014..."
-                  : `${formatQty(flagshipStats.totalConsumption)} ${flagshipStats.unit} consumed on site`}
-              </p>
-            </div>
 
-            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-xs min-w-0">
-              <div className="flex items-center justify-between text-xs font-medium text-amber-900">
-                <span>Peak Godown Idle (PCC Poles)</span>
-                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+          {/* Single Raised Charcoal KPI Strip */}
+          <div className="mt-6">
+            {error ? (
+              <div
+                role="alert"
+                className="flex flex-col gap-3 rounded-[20px] border border-rose-400/20 bg-[#1a1a1a]/90 px-5 py-4 text-sm text-[#e7e7e7] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400"
+                  />
+                  <span className="truncate">{error}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="inline-flex h-9 shrink-0 items-center gap-1.5 self-start rounded-full border border-white/[0.08] bg-white/[0.06] px-4 text-sm font-medium text-[#e7e7e7] transition-colors hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer sm:self-center"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 text-[#a0a0a0]" />
+                  Retry
+                </button>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tabular-nums text-amber-950">
-                  {loading || !flagshipStats
-                    ? "—"
-                    : `${formatQty(flagshipStats.peakGodownStock)} ${flagshipStats.unit}`}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-amber-800 tabular-nums">
-                {loading || !flagshipStats
-                  ? "Scanning ledger..."
-                  : `Peak in ${flagshipStats.peakGodownMonth} • Contractor peak ${formatQty(flagshipStats.peakContractorStock)} ${flagshipStats.unit}`}
-              </p>
-            </div>
+            ) : (
+              <section
+                aria-label="Global Project KPIs"
+                className="rounded-[20px] border border-white/[0.06] bg-[#1a1a1a]/90 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.45)] backdrop-blur-md"
+              >
+                <div className="grid grid-cols-1 divide-y divide-white/[0.06] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                  {/* Stat 1: PCC Poles Received vs Erected */}
+                  <div className="min-w-0 px-5 py-4 sm:px-6 sm:py-5">
+                    {loading || !flagshipStats ? (
+                      <div className="space-y-2.5" aria-busy="true">
+                        <div className="h-3.5 w-36 rounded-full bg-white/[0.06] animate-pulse" />
+                        <div className="h-8 w-28 rounded-lg bg-white/[0.08] animate-pulse" />
+                        <div className="h-3.5 w-44 rounded-full bg-white/[0.05] animate-pulse" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-xs font-normal text-[#898989]">
+                          PCC poles received vs erected
+                        </div>
+                        <div className="mt-2 flex items-baseline">
+                          <span className="font-serif font-normal text-[32px] leading-none tracking-[-0.02em] tabular-nums text-white">
+                            {formatQty(flagshipStats.totalReceipts)}
+                          </span>
+                          <span className="ml-1.5 font-sans text-xs text-[#898989]">
+                            {flagshipStats.unit}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs tabular-nums text-[#a0a0a0]">
+                          {formatQty(flagshipStats.totalConsumption)}{" "}
+                          {flagshipStats.unit} consumed on site
+                        </p>
+                      </>
+                    )}
+                  </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs min-w-0">
-              <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                <span>Tracked Network Scope</span>
-                <Warehouse className="h-4 w-4 text-slate-600 shrink-0" />
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tabular-nums text-slate-900">
-                  {loading || !metadata
-                    ? "—"
-                    : `${metadata.godowns.length} Godowns`}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                {loading || !metadata
-                  ? "Loading catalog..."
-                  : `${metadata.items.length} SKUs • ${metadata.sets.length} Kit Sets • ${formatQty(ledgerRows.length)} ledger rows`}
-              </p>
-            </div>
-          </section>
-        )}
+                  {/* Stat 2: Peak Godown Idle */}
+                  <div className="min-w-0 px-5 py-4 sm:px-6 sm:py-5">
+                    {loading || !flagshipStats ? (
+                      <div className="space-y-2.5" aria-busy="true">
+                        <div className="h-3.5 w-32 rounded-full bg-white/[0.06] animate-pulse" />
+                        <div className="h-8 w-24 rounded-lg bg-white/[0.08] animate-pulse" />
+                        <div className="h-3.5 w-48 rounded-full bg-white/[0.05] animate-pulse" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-xs font-normal text-[#898989]">
+                          Peak godown idle (PCC poles)
+                        </div>
+                        <div className="mt-2 flex items-baseline">
+                          <span className="font-serif font-normal text-[32px] leading-none tracking-[-0.02em] tabular-nums text-white">
+                            {formatQty(flagshipStats.peakGodownStock)}
+                          </span>
+                          <span className="ml-1.5 font-sans text-xs text-[#898989]">
+                            {flagshipStats.unit}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs tabular-nums text-[#a0a0a0]">
+                          Peak {flagshipStats.peakGodownMonth} · Contractor peak{" "}
+                          {formatQty(flagshipStats.peakContractorStock)}{" "}
+                          {flagshipStats.unit}
+                        </p>
+                      </>
+                    )}
+                  </div>
 
-        {/* Active Track Feature View */}
+                  {/* Stat 3: Tracked Network Scope */}
+                  <div className="min-w-0 px-5 py-4 sm:px-6 sm:py-5">
+                    {loading || !metadata ? (
+                      <div className="space-y-2.5" aria-busy="true">
+                        <div className="h-3.5 w-32 rounded-full bg-white/[0.06] animate-pulse" />
+                        <div className="h-8 w-24 rounded-lg bg-white/[0.08] animate-pulse" />
+                        <div className="h-3.5 w-44 rounded-full bg-white/[0.05] animate-pulse" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-xs font-normal text-[#898989]">
+                          Tracked network scope
+                        </div>
+                        <div className="mt-2 flex items-baseline">
+                          <span className="font-serif font-normal text-[32px] leading-none tracking-[-0.02em] tabular-nums text-white">
+                            {metadata.godowns.length}
+                          </span>
+                          <span className="ml-1.5 font-sans text-xs text-[#898989]">
+                            godowns
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs tabular-nums text-[#a0a0a0]">
+                          {metadata.items.length} SKUs · {metadata.sets.length}{" "}
+                          kit sets · {formatQty(ledgerRows.length)} ledger rows
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Main Workspace Stage */}
+      <main
+        ref={workspaceRef}
+        className="mx-auto w-full max-w-[1280px] flex-1 min-w-0 scroll-mt-20 px-4 pt-2 pb-12 sm:px-6 lg:px-8"
+      >
         <div
+          key={activeTab}
           id={`tabpanel-${activeTab}`}
           role="tabpanel"
           aria-labelledby={`tab-${activeTab}`}
-          className="pb-8 min-w-0"
+          className="steep-fade-in min-w-0"
         >
           {activeTab === "ledger" && <LedgerView />}
           {activeTab === "planner" && <PlannerView hideProfileSwitcher />}
           {activeTab === "sets" && <SetsView />}
         </div>
       </main>
+
+      {/* Closing Threshold Invitation */}
+      <section className="border-t border-white/[0.06] bg-[#121212]">
+        <div className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
+            <div className="min-w-0">
+              <p className="text-xs font-normal text-[#898989]">
+                Next step · Kanpur RDSS
+              </p>
+              <h2 className="mt-2.5 font-serif font-normal text-[36px] leading-[1.16] tracking-[-0.015em] text-[#e7e7e7] sm:text-[48px]">
+                Step into consumption-led procurement.
+              </h2>
+              <p className="mt-3.5 max-w-md text-base leading-relaxed text-[#a0a0a0]">
+                Rebalance idle yard stock and verify kit ratios before another
+                purchase order leaves the desk.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleJumpToTab(activeTab === "planner" ? "sets" : "planner")
+                  }
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-[15px] font-medium text-black transition-all duration-200 hover:opacity-90 active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] cursor-pointer"
+                >
+                  <span>
+                    {activeTab === "planner"
+                      ? "Jump to Match Sets"
+                      : "Open Ordering Planner"}
+                  </span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenCopilot}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.06] px-5 text-[15px] font-medium text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.11] active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] cursor-pointer"
+                >
+                  <StarburstIcon className="h-4 w-4 text-violet-300" />
+                  <span>Ask Ops Copilot</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-center lg:justify-end">
+              <ThresholdDoorArtwork />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Restrained 5-Column Steep Directory Footer */}
+      <SteepFooter
+        activeTab={activeTab}
+        onSelectTab={handleJumpToTab}
+        onOpenCopilot={handleOpenCopilot}
+      />
+
       <OpsCopilotDrawer activeTab={activeTab} />
     </div>
   );

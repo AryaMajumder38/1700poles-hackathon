@@ -62,14 +62,17 @@ export function computeStrandedChildSurplus(
   return Math.max(0, child.available_stock - consumedForUsable);
 }
 
-export function formatQty(value: number, unit: ItemUnit): string {
+export function formatQtyNumber(value: number, unit: ItemUnit): string {
   const abs = Math.abs(value);
   const maxFractionDigits =
     unit === "MT" ? 4 : unit === "KG" ? 2 : abs > 0 && abs < 10 ? 2 : 0;
-  const formatted = new Intl.NumberFormat("en-IN", {
+  return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: maxFractionDigits,
   }).format(value);
-  return `${formatted} ${unit}`;
+}
+
+export function formatQty(value: number, unit: ItemUnit): string {
+  return `${formatQtyNumber(value, unit)} ${unit}`;
 }
 
 export function formatCount(value: number): string {

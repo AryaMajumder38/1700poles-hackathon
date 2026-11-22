@@ -1,19 +1,13 @@
 "use client";
 
-import {
-  AlertOctagon,
-  AlertTriangle,
-  CheckCircle2,
-  Package,
-  ShieldAlert,
-  Warehouse,
-  Wrench,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { SetImbalanceRow } from "@/types/lumino";
+import KitAssemblyWireframe from "./KitAssemblyWireframe";
 import {
   computeStrandedChildSurplus,
   formatCount,
   formatQty,
+  formatQtyNumber,
   formatRatio,
   getCellVisualStatus,
   isChildOnlyStrandedRow,
@@ -31,7 +25,7 @@ export default function CellBottleneckInspector({
 }: CellBottleneckInspectorProps) {
   if (!row) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-xs">
+      <section className="rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6 text-sm text-[#a0a0a0]">
         Select any godown-month cell in the heatmap above to inspect its kit
         balance and bottleneck child.
       </section>
@@ -46,221 +40,210 @@ export default function CellBottleneckInspector({
     row.parent_stock > 0
       ? (row.stranded_parent_qty / row.parent_stock) * 100
       : 0;
+  const hasBottleneck = row.children.some((c) => c.is_bottleneck);
 
-  const badgeStyle =
+  const statusDot =
     status === "balanced"
-      ? "bg-emerald-100 text-emerald-900 border-emerald-200"
+      ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]"
       : status === "critical"
-        ? "bg-rose-100 text-rose-900 border-rose-200"
+        ? "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.75)]"
         : status === "warning"
-          ? "bg-amber-100 text-amber-900 border-amber-200"
-          : "bg-slate-100 text-slate-700 border-slate-200";
+          ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.7)]"
+          : "bg-white/30";
 
-  const badgeLabel =
+  const statusLabel =
     status === "balanced"
-      ? "Balanced / Ready"
+      ? "Balanced"
       : status === "critical"
-        ? "Critical Imbalance"
+        ? "Critical imbalance"
         : childOnlyStranded
-          ? "Warning • Stranded Child Stock (0 Parent)"
+          ? "Stranded child stock (0 parent)"
           : status === "warning"
-            ? "Warning • Partial Imbalance"
-            : "Zero Stock";
+            ? "Partial imbalance"
+            : "Zero stock";
 
   const maxBarScale = Math.max(
     row.parent_stock,
-    ...row.children.map((c) => Math.min(c.buildable_sets, row.parent_stock * 1.5 || c.buildable_sets)),
+    ...row.children.map((c) =>
+      Math.min(c.buildable_sets, row.parent_stock * 1.5 || c.buildable_sets)
+    ),
     1
   );
 
   return (
     <section
       aria-label="Cell Drill-Down and Bottleneck Inspector"
-      className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-5 min-w-0"
+      className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] min-w-0"
     >
-      {/* Inspector Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-slate-100 pb-4">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-2.5 py-0.5 font-mono text-xs font-bold text-amber-400">
-              SET {row.set_no}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
-              <Warehouse className="h-3.5 w-3.5 text-slate-500" />
-              {shortGodown(row.godown)} ({row.godown})
-            </span>
-            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs font-semibold text-slate-700">
-              {row.month}
-            </span>
-            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-600 uppercase">
-              {row.ratio_mode === "empirical" ? "Empirical Ratio" : "BOM Ratio"}
-            </span>
+      {/* Inspector Header + Spectral Isometric Kit Wireframe */}
+      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="min-w-0 space-y-2.5">
+          <div>
+            <div className="flex flex-wrap items-baseline gap-2.5">
+              <h3 className="font-serif font-normal text-[24px] sm:text-[26px] leading-tight tracking-[-0.015em] text-[#e7e7e7]">
+                {shortSetLabel(row.set_no)}
+              </h3>
+              <span className="font-mono text-xs text-[#898989]">
+                {row.parent_code}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-[#a0a0a0] tabular-nums">
+              Set {row.set_no} · {shortGodown(row.godown)} · {row.month} ·{" "}
+              {row.ratio_mode === "empirical" ? "Empirical" : "BOM"} ratio
+            </p>
           </div>
-          <h3 className="text-base font-bold text-slate-900">
-            {shortSetLabel(row.set_no)} —{" "}
-            <span className="font-mono text-sm font-semibold text-slate-600">
-              {row.parent_code}
-            </span>
-          </h3>
-          <p className="text-xs text-slate-500">{row.parent_name}</p>
+
+          <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs font-medium text-[#e7e7e7]">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${statusDot}`}
+              aria-hidden="true"
+            />
+            {statusLabel}
+          </span>
         </div>
 
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border px-3 py-1 text-xs font-bold ${badgeStyle}`}
-        >
-          {status === "balanced" && <CheckCircle2 className="h-3.5 w-3.5" />}
-          {status === "critical" && <AlertOctagon className="h-3.5 w-3.5" />}
-          {status === "warning" && <AlertTriangle className="h-3.5 w-3.5" />}
-          {status === "zero" && <Package className="h-3.5 w-3.5" />}
-          {badgeLabel}
-        </span>
+        <KitAssemblyWireframe
+          childrenItems={row.children}
+          status={status}
+          hasBottleneck={hasBottleneck}
+        />
       </div>
 
-      {/* 3 Headline Parent-Unit Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3.5">
-          <div className="text-xs font-medium text-slate-500">
-            Parent Stock on Hand
+      {/* 3 Headline Parent-Unit Metrics (Divider-Separated, Newsreader Serif Numerals) */}
+      <div className="grid grid-cols-1 divide-y divide-white/[0.06] border-t border-white/[0.06] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="p-5 sm:p-6 min-w-0">
+          <div className="text-xs font-normal text-[#898989]">
+            Parent stock on hand
           </div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
-            {formatQty(row.parent_stock, row.parent_unit)}
-          </div>
-          <div className="mt-0.5 font-mono text-[11px] text-slate-500">
-            {row.parent_code} closing stock in {row.month}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3.5">
-          <div className="text-xs font-medium text-emerald-900">
-            Max Buildable Sets (Child Limit)
-          </div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-emerald-950">
-            {formatCount(row.max_buildable_sets)}{" "}
-            <span className="text-sm font-semibold text-emerald-800">
+          <div className="mt-3 flex items-baseline">
+            <span className="font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] tabular-nums text-white">
+              {formatQtyNumber(row.parent_stock, row.parent_unit)}
+            </span>
+            <span className="ml-1.5 font-sans text-xs text-[#898989]">
               {row.parent_unit}
             </span>
           </div>
-          <div className="mt-0.5 text-[11px] text-emerald-800 tabular-nums">
-            Effective deployable kits:{" "}
-            <strong>{formatQty(usableSets, row.parent_unit)}</strong>
+          <div className="mt-2 text-xs text-[#898989] tabular-nums">
+            Closing stock in {row.month}
           </div>
         </div>
 
-        <div
-          className={`rounded-lg border p-3.5 ${
-            row.stranded_parent_qty > 0
-              ? "border-rose-200 bg-rose-50/60"
-              : "border-slate-200 bg-slate-50/70"
-          }`}
-        >
-          <div
-            className={`text-xs font-medium ${
-              row.stranded_parent_qty > 0 ? "text-rose-900" : "text-slate-500"
-            }`}
-          >
-            Stranded Parent Surplus
+        <div className="p-5 sm:p-6 min-w-0">
+          <div className="text-xs font-normal text-[#898989]">
+            Max buildable sets
           </div>
-          <div
-            className={`mt-1 text-2xl font-bold tabular-nums ${
-              row.stranded_parent_qty > 0 ? "text-rose-950" : "text-slate-900"
-            }`}
-          >
-            {formatQty(row.stranded_parent_qty, row.parent_unit)}
+          <div className="mt-3 flex items-baseline">
+            <span className="font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] tabular-nums text-white">
+              {formatCount(row.max_buildable_sets)}
+            </span>
+            <span className="ml-1.5 font-sans text-xs text-[#898989]">
+              {row.parent_unit}
+            </span>
           </div>
-          <div
-            className={`mt-0.5 text-[11px] tabular-nums ${
-              row.stranded_parent_qty > 0 ? "text-rose-800" : "text-slate-500"
-            }`}
-          >
+          <div className="mt-2 text-xs text-[#898989] tabular-nums">
+            Deployable: {formatQty(usableSets, row.parent_unit)}
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-6 min-w-0">
+          <div className="text-xs font-normal text-[#898989]">
+            Stranded parent
+          </div>
+          <div className="mt-3 flex items-baseline">
+            <span
+              className={`font-serif font-normal text-[30px] sm:text-[34px] leading-none tracking-[-0.02em] tabular-nums ${
+                row.stranded_parent_qty > 0 ? "text-rose-400" : "text-white"
+              }`}
+            >
+              {formatQtyNumber(row.stranded_parent_qty, row.parent_unit)}
+            </span>
+            <span className="ml-1.5 font-sans text-xs text-[#898989]">
+              {row.parent_unit}
+            </span>
+          </div>
+          <div className="mt-2 text-xs text-[#898989] tabular-nums">
             {row.parent_stock > 0
               ? `${blockedPct.toFixed(1)}% of on-hand parents blocked`
               : childOnlyStranded
-                ? "0 parents on hand — child stock stranded below"
+                ? "0 parents on hand — child stock stranded"
                 : "No parents stranded"}
           </div>
         </div>
       </div>
 
-      {/* Bottleneck Callout Banner */}
+      {/* Concise 1-Line Finding + Collapsible Context */}
       {!zeroStock && (
-        <div
-          className={`rounded-lg border p-3.5 flex items-start gap-3 ${
-            status === "balanced"
-              ? "border-emerald-200 bg-emerald-50/60 text-emerald-950"
-              : status === "critical"
-                ? "border-rose-200 bg-rose-50/70 text-rose-950"
-                : "border-amber-200 bg-amber-50/70 text-amber-950"
-          }`}
-        >
-          {status === "balanced" ? (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
-          ) : (
-            <ShieldAlert
-              className={`mt-0.5 h-4 w-4 shrink-0 ${
-                status === "critical" ? "text-rose-700" : "text-amber-700"
-              }`}
-            />
-          )}
-          <div className="text-xs leading-relaxed">
-            {status === "balanced" ? (
-              <>
-                <span className="font-bold">Kit Balanced:</span> All{" "}
-                <strong>{formatQty(row.parent_stock, row.parent_unit)}</strong>{" "}
-                in {shortGodown(row.godown)} can be assembled with available
-                child inventory (children support up to{" "}
-                <strong>{formatCount(row.max_buildable_sets)} sets</strong>).
-              </>
-            ) : childOnlyStranded ? (
-              <>
-                <span className="font-bold">
-                  Parent Missing ({row.parent_code} = 0 {row.parent_unit}):
-                </span>{" "}
-                Child components are sitting idle in {shortGodown(row.godown)}{" "}
-                with zero parent assemblies available to pair them with.
-              </>
-            ) : (
-              <>
-                <span className="font-bold">
-                  Primary Bottleneck: {row.bottleneck_item_code}
-                </span>{" "}
-                ({row.bottleneck_item_name}) caps assembly at{" "}
-                <strong>
-                  {formatCount(row.max_buildable_sets)} {row.parent_unit}
-                </strong>
-                , leaving{" "}
-                <strong>
-                  {formatQty(row.stranded_parent_qty, row.parent_unit)}
-                </strong>{" "}
-                stranded in {shortGodown(row.godown)} during {row.month}.
-              </>
-            )}
+        <details className="group border-t border-white/[0.06] px-5 sm:px-6 py-3.5 text-xs text-[#a0a0a0]">
+          <summary className="flex flex-wrap items-center justify-between gap-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50">
+            <span className="flex items-center gap-2 min-w-0">
+              <span
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot}`}
+                aria-hidden="true"
+              />
+              <span className="truncate">
+                {status === "balanced" ? (
+                  <>
+                    All {formatQty(row.parent_stock, row.parent_unit)} can be
+                    assembled (children support{" "}
+                    {formatCount(row.max_buildable_sets)} {row.parent_unit}).
+                  </>
+                ) : childOnlyStranded ? (
+                  <>
+                    Parent{" "}
+                    <span className="font-mono text-[#e7e7e7]">
+                      {row.parent_code}
+                    </span>{" "}
+                    is at 0 {row.parent_unit} while child stock remains idle.
+                  </>
+                ) : (
+                  <>
+                    Primary bottleneck{" "}
+                    <span className="font-mono text-[#e7e7e7]">
+                      {row.bottleneck_item_code}
+                    </span>{" "}
+                    caps assembly at {formatCount(row.max_buildable_sets)}{" "}
+                    {row.parent_unit}, stranding{" "}
+                    {formatQty(row.stranded_parent_qty, row.parent_unit)}.
+                  </>
+                )}
+              </span>
+            </span>
+
+            <span className="inline-flex shrink-0 items-center gap-0.5 font-medium text-[#a0a0a0] group-hover:text-white transition-colors">
+              Details
+              <ChevronDown className="h-3.5 w-3.5 text-[#898989] transition-transform duration-200 group-open:rotate-180" />
+            </span>
+          </summary>
+
+          <div className="mt-2.5 pl-3.5 text-xs leading-relaxed text-[#898989]">
+            <p>
+              Parent item: {row.parent_name} ({row.godown}).
+              {row.bottleneck_item_name
+                ? ` Limiting child: ${row.bottleneck_item_name} (${row.bottleneck_item_code}).`
+                : ""}
+            </p>
+            <p className="mt-1">
+              Buildable sets follow the Law of the Minimum across all child
+              components using {row.ratio_mode} ratios.
+            </p>
           </div>
-        </div>
+        </details>
       )}
 
-      {/* Law of the Minimum Visual Capacity Bars + Detailed Component Table */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
-            <Wrench className="h-3.5 w-3.5 text-slate-500" />
-            Child Component Breakdown &amp; Stranded Surplus
-          </h4>
-          <span className="text-[11px] text-slate-500">
-            Every quantity shown strictly in its native UOM
-          </span>
-        </div>
+      {/* Visual Capacity Bars (Law of the Minimum) */}
+      {!zeroStock && row.parent_stock > 0 && (
+        <div className="border-t border-white/[0.06] p-5 sm:p-6 space-y-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h4 className="text-[15px] font-medium text-[#e7e7e7]">
+              Buildable capacity
+            </h4>
+            <span className="text-xs tabular-nums text-[#898989]">
+              Target {formatQty(row.parent_stock, row.parent_unit)} · min{" "}
+              {formatCount(row.max_buildable_sets)} {row.parent_unit}
+            </span>
+          </div>
 
-        {/* Visual Capacity Bars */}
-        {!zeroStock && row.parent_stock > 0 && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-600">
-              <span className="font-semibold">
-                Buildable Capacity vs. Parent Demand ({formatQty(row.parent_stock, row.parent_unit)})
-              </span>
-              <span className="font-mono">
-                Law of the Minimum: min = {formatCount(row.max_buildable_sets)} sets
-              </span>
-            </div>
+          <div className="space-y-3.5">
             {row.children.map((child) => {
               const pct = Math.min(
                 100,
@@ -272,151 +255,194 @@ export default function CellBottleneckInspector({
               );
               const isShort = child.buildable_sets < row.parent_stock;
 
+              const barFillClass = child.is_bottleneck
+                ? "bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.65)]"
+                : child.is_shared_child
+                  ? "bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.45)]"
+                  : isShort
+                    ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.45)]"
+                    : "bg-teal-300 shadow-[0_0_8px_rgba(94,234,212,0.4)]";
+
               return (
-                <div key={child.child_code} className="space-y-1">
-                  <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-mono font-semibold text-slate-800">
+                <div key={child.child_code} className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-[#e7e7e7]">
                         {child.child_code}
                       </span>
-                      {child.is_bottleneck && (
-                        <span className="rounded bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                          BOTTLENECK
+                      {child.is_bottleneck ? (
+                        <span className="inline-flex items-center gap-1.5 font-medium text-rose-400">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.8)]"
+                            aria-hidden="true"
+                          />
+                          Bottleneck
                         </span>
-                      )}
-                      {child.is_shared_child && (
-                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
-                          SHARED
+                      ) : child.is_shared_child ? (
+                        <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-0.5 text-[11px] text-violet-300">
+                          Shared
                         </span>
-                      )}
+                      ) : null}
                     </div>
-                    <span className="font-mono text-[11px] tabular-nums text-slate-700">
-                      {formatCount(child.buildable_sets)} buildable sets (
-                      {formatQty(child.available_stock, child.child_unit)})
+                    <span className="tabular-nums text-[#e7e7e7]">
+                      {formatCount(child.buildable_sets)}{" "}
+                      <span className="text-[#898989]">{row.parent_unit}</span>{" "}
+                      <span className="text-[#898989]">
+                        ({formatQty(child.available_stock, child.child_unit)})
+                      </span>
                     </span>
                   </div>
-                  <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]">
                     <div
                       style={{ width: `${pct}%` }}
-                      className={`h-full rounded-full transition-all ${
-                        child.is_bottleneck
-                          ? "bg-rose-500"
-                          : isShort
-                            ? "bg-amber-400"
-                            : "bg-emerald-500"
-                      }`}
+                      className={`h-full rounded-full transition-all duration-300 ${barFillClass}`}
                     />
-                    {/* Vertical target line for parent_stock */}
                     <div
                       style={{ left: `${parentMarkerPct}%` }}
-                      title={`Parent Stock Target: ${formatQty(row.parent_stock, row.parent_unit)}`}
-                      className="absolute top-0 bottom-0 w-0.5 bg-slate-900"
+                      title={`Parent stock target: ${formatQty(row.parent_stock, row.parent_unit)}`}
+                      className="absolute top-0 bottom-0 w-0.5 bg-white/90 shadow-[0_0_6px_rgba(255,255,255,0.8)]"
                     />
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Exact Quantities Table */}
-        <div className="overflow-x-auto max-w-full rounded-lg border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-xs">
-            <thead className="bg-slate-50 text-left font-semibold text-slate-600">
+      {/* Exact Quantities Table */}
+      <div className="border-t border-white/[0.06]">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 sm:px-6 pt-5 pb-3.5">
+          <h4 className="text-[15px] font-medium text-[#e7e7e7]">
+            Child components
+          </h4>
+          <span className="text-xs text-[#898989]">
+            Every quantity shown in its native UOM
+          </span>
+        </div>
+
+        <div className="overflow-x-auto max-w-full">
+          <table className="min-w-full text-left">
+            <thead className="border-y border-white/[0.06] bg-white/[0.025] text-xs font-normal text-[#898989]">
               <tr>
-                <th className="px-3 py-2.5">Child Component</th>
-                <th className="px-3 py-2.5 text-right">Ratio</th>
-                <th className="px-3 py-2.5 text-right">Available Stock</th>
-                <th className="px-3 py-2.5 text-right">Req. for Parent</th>
-                <th className="px-3 py-2.5 text-right">Buildable Sets</th>
-                <th className="px-3 py-2.5 text-right">Surplus / Deficit</th>
-                <th className="px-3 py-2.5 text-right">Stranded Child Surplus</th>
+                <th className="px-5 sm:px-6 py-2.5 font-normal">Component</th>
+                <th className="px-4 py-2.5 text-right font-normal">Ratio</th>
+                <th className="px-4 py-2.5 text-right font-normal">
+                  Available
+                </th>
+                <th className="px-4 py-2.5 text-right font-normal">Required</th>
+                <th className="px-4 py-2.5 text-right font-normal">
+                  Buildable
+                </th>
+                <th className="px-4 py-2.5 text-right font-normal">
+                  Surplus / deficit
+                </th>
+                <th className="px-5 sm:px-6 py-2.5 text-right font-normal">
+                  Stranded child
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-white/[0.05] text-sm">
               {row.children.map((child) => {
                 const strandedChild = computeStrandedChildSurplus(row, child);
                 const isDeficit = child.surplus_or_deficit < -1e-6;
+                const isSurplus = child.surplus_or_deficit > 1e-6;
 
                 return (
                   <tr
                     key={child.child_code}
-                    className={
-                      child.is_bottleneck
-                        ? "bg-rose-50/70"
-                        : child.is_shared_child
-                          ? "bg-amber-50/30"
-                          : undefined
-                    }
+                    className="hover:bg-white/[0.03] transition-colors duration-150"
                   >
-                    <td className="px-3 py-2.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-mono font-bold text-slate-900">
+                    <td className="px-5 sm:px-6 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs text-[#e7e7e7]">
                           {child.child_code}
                         </span>
-                        {child.is_bottleneck && (
-                          <span className="inline-flex items-center rounded bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                            BOTTLENECK
+                        {child.is_bottleneck ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-400">
+                            <span
+                              className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.8)]"
+                              aria-hidden="true"
+                            />
+                            Bottleneck
                           </span>
-                        )}
-                        {child.is_shared_child && (
-                          <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900">
-                            SHARED (3 SETS)
+                        ) : child.is_shared_child ? (
+                          <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-2 py-0.5 text-[11px] text-violet-300">
+                            Shared
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                      <div className="mt-0.5 text-[11px] text-slate-500 max-w-xs truncate">
+                      <div className="mt-0.5 max-w-xs truncate text-xs text-[#898989]">
                         {child.child_name}
                       </div>
                     </td>
 
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-slate-600 whitespace-nowrap">
-                      {formatRatio(child.ratio_used, child.child_unit)}{" "}
-                      <span className="text-[10px] text-slate-400">
+                    <td className="px-4 py-3 text-right tabular-nums text-[#a0a0a0] whitespace-nowrap">
+                      {formatRatio(child.ratio_used, child.child_unit)}
+                      <span className="ml-1 text-xs text-[#898989]">
                         {child.child_unit}/{row.parent_unit}
                       </span>
                     </td>
 
-                    <td className="px-3 py-2.5 text-right font-mono font-semibold tabular-nums text-slate-900 whitespace-nowrap">
-                      {formatQty(child.available_stock, child.child_unit)}
+                    <td className="px-4 py-3 text-right tabular-nums text-[#e7e7e7] whitespace-nowrap">
+                      {formatQtyNumber(child.available_stock, child.child_unit)}
+                      <span className="ml-1 text-xs text-[#898989]">
+                        {child.child_unit}
+                      </span>
                     </td>
 
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums text-slate-700 whitespace-nowrap">
-                      {formatQty(child.required_for_parent, child.child_unit)}
+                    <td className="px-4 py-3 text-right tabular-nums text-[#a0a0a0] whitespace-nowrap">
+                      {formatQtyNumber(
+                        child.required_for_parent,
+                        child.child_unit
+                      )}
+                      <span className="ml-1 text-xs text-[#898989]">
+                        {child.child_unit}
+                      </span>
                     </td>
 
                     <td
-                      className={`px-3 py-2.5 text-right font-mono font-bold tabular-nums whitespace-nowrap ${
-                        child.is_bottleneck
-                          ? "text-rose-700"
-                          : "text-slate-900"
+                      className={`px-4 py-3 text-right font-medium tabular-nums whitespace-nowrap ${
+                        child.is_bottleneck ? "text-rose-400" : "text-white"
                       }`}
                     >
                       {formatCount(child.buildable_sets)}
+                      <span className="ml-1 text-xs font-normal text-[#898989]">
+                        {row.parent_unit}
+                      </span>
                     </td>
 
                     <td
-                      className={`px-3 py-2.5 text-right font-mono font-semibold tabular-nums whitespace-nowrap ${
+                      className={`px-4 py-3 text-right tabular-nums whitespace-nowrap ${
                         isDeficit
-                          ? "text-rose-700"
-                          : child.surplus_or_deficit > 0
-                            ? "text-emerald-700"
-                            : "text-slate-500"
+                          ? "text-rose-400"
+                          : isSurplus
+                            ? "text-emerald-400"
+                            : "text-white/25"
                       }`}
                     >
-                      {child.surplus_or_deficit > 0 ? "+" : ""}
-                      {formatQty(child.surplus_or_deficit, child.child_unit)}
+                      {isSurplus ? "+" : ""}
+                      {formatQtyNumber(
+                        child.surplus_or_deficit,
+                        child.child_unit
+                      )}
+                      <span className="ml-1 text-xs text-[#898989]">
+                        {child.child_unit}
+                      </span>
                     </td>
 
-                    <td className="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap">
+                    <td className="px-5 sm:px-6 py-3 text-right tabular-nums whitespace-nowrap">
                       <span
                         className={
                           strandedChild > 0
-                            ? "font-semibold text-amber-800"
-                            : "text-slate-400"
+                            ? "text-[#e7e7e7]"
+                            : "text-white/25"
                         }
                       >
-                        {formatQty(strandedChild, child.child_unit)}
+                        {formatQtyNumber(strandedChild, child.child_unit)}
+                      </span>
+                      <span className="ml-1 text-xs text-[#898989]">
+                        {child.child_unit}
                       </span>
                     </td>
                   </tr>

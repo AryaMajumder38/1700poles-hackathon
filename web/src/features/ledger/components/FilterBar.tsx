@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Boxes, Building2, Calendar, Filter, Lock } from "lucide-react";
 import type { ActiveGodown, ItemMaster } from "@/types/lumino";
 import { formatMonthShort } from "../utils";
 
@@ -38,11 +37,6 @@ export function FilterBar({
   onSelectEndMonth,
   onPresetDateRange,
 }: FilterBarProps) {
-  const currentItem = useMemo(
-    () => items.find((i) => i.item_code === selectedItemCode) || items[0],
-    [items, selectedItemCode]
-  );
-
   const firstMonth = months[0];
   const lastMonth = months[months.length - 1];
   const hasMonths = Boolean(firstMonth && lastMonth);
@@ -72,189 +66,162 @@ export function FilterBar({
       endMonth === lastMonth
   );
 
+  const selectBaseClassName =
+    "h-9 min-w-0 border border-white/[0.09] bg-[#1a1a1a] text-sm text-[#e7e7e7] transition-colors duration-150 hover:border-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:border-white/20 cursor-pointer disabled:cursor-not-allowed disabled:border-white/[0.05] disabled:bg-[#151515] disabled:text-[#666666]";
+
+  const optionClassName = "bg-[#1a1a1a] text-[#e7e7e7]";
+
   return (
-    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-      <div className="flex flex-col gap-4">
-        {/* Top Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Filter className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-            <h3 className="text-sm font-semibold text-slate-900">
-              Inventory Explorer Filters
-            </h3>
-            <span className="text-xs text-slate-500">
-              (Live filter {items.length} items across {godowns.length} godowns)
-            </span>
-          </div>
+    <div
+      role="region"
+      aria-label="Ledger filters"
+      className="flex min-w-0 flex-wrap items-center gap-2.5"
+    >
+      {/* Item Selector */}
+      <select
+        id="item-selector"
+        aria-label="Catalog SKU or item"
+        value={selectedItemCode}
+        disabled={items.length === 0}
+        onChange={(e) => onSelectItemCode(e.target.value)}
+        className={`${selectBaseClassName} w-full rounded-xl px-3.5 sm:w-auto sm:min-w-[260px] sm:max-w-sm sm:flex-1`}
+      >
+        {items.map((item) => (
+          <option
+            key={item.item_code}
+            value={item.item_code}
+            className={optionClassName}
+          >
+            {item.item_code} — {item.item_name} ({item.unit})
+          </option>
+        ))}
+      </select>
 
-          {/* Quick Timeline Presets */}
-          {hasMonths && firstMonth && lastMonth && (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="mr-1 hidden font-medium text-slate-500 sm:inline">
-                Timeline:
-              </span>
-              <button
-                type="button"
-                aria-pressed={isFullRangeActive}
-                onClick={() => onPresetDateRange(firstMonth, lastMonth)}
-                className={`rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
-                  isFullRangeActive
-                    ? "bg-amber-100 text-amber-800 font-semibold"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                Full ({months.length}M)
-              </button>
-              {effectiveReceiptsEnd && (
-                <button
-                  type="button"
-                  aria-pressed={isReceiptsActiveRange}
-                  onClick={() => onPresetDateRange(firstMonth, effectiveReceiptsEnd)}
-                  className={`rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
-                    isReceiptsActiveRange
-                      ? "bg-amber-100 text-amber-800 font-semibold"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  Receipts Active (to {formatMonthShort(effectiveReceiptsEnd)})
-                </button>
-              )}
-              {hasPostFreeze && effectiveReceiptsEnd && (
-                <button
-                  type="button"
-                  aria-pressed={isPostFreezeRange}
-                  onClick={() => onPresetDateRange(effectiveReceiptsEnd, lastMonth)}
-                  className={`rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
-                    isPostFreezeRange
-                      ? "bg-amber-100 text-amber-800 font-semibold"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  Post-Freeze ({formatMonthShort(effectiveReceiptsEnd)}–{formatMonthShort(lastMonth)})
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Godown Selector */}
+      <select
+        id="godown-selector"
+        aria-label="Godown scope"
+        value={lockedGodown ?? selectedGodown}
+        disabled={Boolean(lockedGodown)}
+        onChange={(e) => {
+          if (!lockedGodown) onSelectGodown(e.target.value);
+        }}
+        className={`${selectBaseClassName} w-full rounded-full px-3.5 sm:w-auto sm:min-w-[190px]`}
+      >
+        {lockedGodown ? (
+          <option value={lockedGodown} className={optionClassName}>
+            {lockedGodown}
+          </option>
+        ) : (
+          <>
+            <option value="ALL" className={optionClassName}>
+              All {godowns.length} godowns
+            </option>
+            {godowns.map((g) => (
+              <option key={g} value={g} className={optionClassName}>
+                {g}
+              </option>
+            ))}
+          </>
+        )}
+      </select>
 
-        {/* Primary Controls Row */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          {/* 1. Item Selector (takes 6 cols) */}
-          <div className="min-w-0 lg:col-span-6">
-            <label
-              htmlFor="item-selector"
-              className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-700"
+      {/* Month Range Selects */}
+      <div className="flex w-full items-center gap-1.5 sm:w-auto">
+        <select
+          id="start-month-selector"
+          aria-label="Start month"
+          value={startMonth}
+          disabled={!hasMonths}
+          onChange={(e) => onSelectStartMonth(e.target.value)}
+          className={`${selectBaseClassName} flex-1 rounded-full px-3 tabular-nums sm:w-[116px] sm:flex-none`}
+        >
+          {months.map((m) => (
+            <option
+              key={m}
+              value={m}
+              disabled={Boolean(endMonth) && m > endMonth}
+              className={optionClassName}
             >
-              <Boxes className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-              <span>Catalog SKU / Item:</span>
-              {currentItem && (
-                <span className="ml-auto inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                  UOM: {currentItem.unit} • {currentItem.role} • Lead: {currentItem.lead_time_days}d
-                </span>
-              )}
-            </label>
-            <select
-              id="item-selector"
-              value={selectedItemCode}
-              disabled={items.length === 0}
-              onChange={(e) => onSelectItemCode(e.target.value)}
-              className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 font-sans text-sm text-slate-900 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-50"
+              {m}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-[#898989]" aria-hidden="true">
+          –
+        </span>
+        <select
+          id="end-month-selector"
+          aria-label="End month"
+          value={endMonth}
+          disabled={!hasMonths}
+          onChange={(e) => onSelectEndMonth(e.target.value)}
+          className={`${selectBaseClassName} flex-1 rounded-full px-3 tabular-nums sm:w-[116px] sm:flex-none`}
+        >
+          {months.map((m) => (
+            <option
+              key={m}
+              value={m}
+              disabled={Boolean(startMonth) && m < startMonth}
+              className={optionClassName}
             >
-              {items.map((item) => (
-                <option key={item.item_code} value={item.item_code}>
-                  {item.item_code} — {item.item_name} [{item.unit}]
-                </option>
-              ))}
-            </select>
-          </div>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
 
-          {/* 2. Godown Selector (takes 3 cols) */}
-          <div className="min-w-0 lg:col-span-3">
-            <label
-              htmlFor="godown-selector"
-              className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-700"
-            >
-              <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-              <span>Godown Scope:</span>
-              {lockedGodown && (
-                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
-                  <Lock className="h-2.5 w-2.5" aria-hidden="true" />
-                  Site Scoped
-                </span>
-              )}
-            </label>
-            <select
-              id="godown-selector"
-              value={lockedGodown ?? selectedGodown}
-              disabled={Boolean(lockedGodown)}
-              onChange={(e) => {
-                if (!lockedGodown) onSelectGodown(e.target.value);
-              }}
-              className={`w-full min-w-0 rounded-lg border px-3 py-2 text-sm focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 ${
-                lockedGodown
-                  ? "border-amber-300 bg-amber-50/70 text-amber-950 font-semibold cursor-not-allowed"
-                  : "border-slate-300 bg-white text-slate-900 cursor-pointer"
+      {/* Timeline Presets Segmented Control */}
+      {hasMonths && firstMonth && lastMonth && (
+        <div
+          role="group"
+          aria-label="Timeline presets"
+          className="inline-flex flex-wrap items-center rounded-full border border-white/[0.06] bg-white/[0.05] p-1 sm:ml-auto"
+        >
+          <button
+            type="button"
+            aria-pressed={isFullRangeActive}
+            onClick={() => onPresetDateRange(firstMonth, lastMonth)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
+              isFullRangeActive
+                ? "bg-white text-black shadow-sm"
+                : "text-[#a0a0a0] hover:text-white"
+            }`}
+          >
+            All ({months.length}m)
+          </button>
+          {effectiveReceiptsEnd && (
+            <button
+              type="button"
+              aria-pressed={isReceiptsActiveRange}
+              title={`Up to ${formatMonthShort(effectiveReceiptsEnd)}`}
+              onClick={() => onPresetDateRange(firstMonth, effectiveReceiptsEnd)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
+                isReceiptsActiveRange
+                  ? "bg-white text-black shadow-sm"
+                  : "text-[#a0a0a0] hover:text-white"
               }`}
             >
-              {lockedGodown ? (
-                <option value={lockedGodown}>{lockedGodown}</option>
-              ) : (
-                <>
-                  <option value="ALL">
-                    All {godowns.length} Active Godowns (Aggregated)
-                  </option>
-                  {godowns.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
-
-          {/* 3. Date Range (takes 3 cols) */}
-          <div className="min-w-0 lg:col-span-3">
-            <label
-              htmlFor="start-month-selector"
-              className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-700"
+              Receipts active
+            </button>
+          )}
+          {hasPostFreeze && effectiveReceiptsEnd && (
+            <button
+              type="button"
+              aria-pressed={isPostFreezeRange}
+              title={`${formatMonthShort(effectiveReceiptsEnd)}–${formatMonthShort(lastMonth)}`}
+              onClick={() => onPresetDateRange(effectiveReceiptsEnd, lastMonth)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
+                isPostFreezeRange
+                  ? "bg-white text-black shadow-sm"
+                  : "text-[#a0a0a0] hover:text-white"
+              }`}
             >
-              <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden="true" />
-              <span>Timeline Window:</span>
-            </label>
-            <div className="grid min-w-0 grid-cols-2 gap-2">
-              <select
-                id="start-month-selector"
-                aria-label="Start Month"
-                value={startMonth}
-                disabled={!hasMonths}
-                onChange={(e) => onSelectStartMonth(e.target.value)}
-                className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 font-mono text-xs text-slate-900 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-50"
-              >
-                {months.map((m) => (
-                  <option key={m} value={m} disabled={Boolean(endMonth) && m > endMonth}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <select
-                id="end-month-selector"
-                aria-label="End Month"
-                value={endMonth}
-                disabled={!hasMonths}
-                onChange={(e) => onSelectEndMonth(e.target.value)}
-                className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 font-mono text-xs text-slate-900 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500 cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-50"
-              >
-                {months.map((m) => (
-                  <option key={m} value={m} disabled={Boolean(startMonth) && m < startMonth}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+              Post-freeze
+            </button>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

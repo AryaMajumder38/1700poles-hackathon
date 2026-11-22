@@ -16,12 +16,7 @@ import type {
 } from "@/types/lumino";
 import ActionCardsGrid from "./ActionCardsGrid";
 import AdminMasterDataPanel from "./AdminMasterDataPanel";
-import {
-  CornerMarks,
-  FadingRulesDivider,
-  HexFontLoader,
-  PrimaryPlateButton,
-} from "./HexPrimitives";
+import { PrimaryPlateButton } from "./HexPrimitives";
 import IdleStockChart from "./IdleStockChart";
 import MonthScrubber, { type DecisionFilter } from "./MonthScrubber";
 import "./plannerHex.css";
@@ -711,14 +706,10 @@ export default function PlannerView(props: PlannerViewProps = {}) {
 
   if (loading) {
     return (
-      <div className="hex-planner p-14">
-        <HexFontLoader />
-        <div className="hp-noise" />
-        <div className="relative z-10 flex items-center justify-center gap-3 text-sm font-light text-[#43394c]">
-          <Loader2 className="h-4 w-4 animate-spin text-[#a98529]" />
-          <span className="hp-mono text-xs">
-            Loading 44-month causal replay &amp; Stage A LP simulation...
-          </span>
+      <div className="rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-12">
+        <div className="flex items-center justify-center gap-2.5 text-sm text-[#a0a0a0]">
+          <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
+          <span>Loading 44-month causal replay &amp; LP simulation...</span>
         </div>
       </div>
     );
@@ -726,16 +717,14 @@ export default function PlannerView(props: PlannerViewProps = {}) {
 
   if (error || !metadata || !selectedItem || !selectedSummary || !opsState) {
     return (
-      <div className="hex-planner p-8">
-        <HexFontLoader />
-        <div className="hp-noise" />
-        <div className="relative z-10 flex items-start gap-3 border border-[#b43c57]/35 bg-[#fcf8f8] p-5 text-sm text-[#b43c57]">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+      <div className="rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6">
+        <div className="flex items-start gap-3 text-sm">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
           <div>
-            <div className="hp-heading font-bold text-[#14141c]">
+            <div className="font-medium text-[#e7e7e7]">
               Unable to load Planner simulation
             </div>
-            <p className="mt-1 text-xs font-light text-[#43394c]">
+            <p className="mt-1 text-sm text-[#a0a0a0]">
               {error ?? "Missing pre-aggregated JSON payloads in /public/data/."}
             </p>
           </div>
@@ -745,7 +734,7 @@ export default function PlannerView(props: PlannerViewProps = {}) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="hex-planner space-y-6">
       {/* Persistent Top RBAC Scope & Sub-Navigation Bar */}
       <RoleAccessBar
         roleType={roleType}
@@ -761,21 +750,22 @@ export default function PlannerView(props: PlannerViewProps = {}) {
         onResetDemo={handleResetDemo}
       />
 
-      {/* SUB-TAB 1: Hex-Styled Causal Replay & The Bar (RBAC-Scoped for Site Managers) */}
+      {/* SUB-TAB 1: Causal Replay & Backtest Scorecard (RBAC-Scoped for Site Managers) */}
       {activeSubTab === "replay" && (
-        <div className="hex-planner">
-          <HexFontLoader />
-          <div className="hp-noise" />
-          <CornerMarks tone="light" />
-
+        <div className="space-y-6">
           {lockedGodownName && (
-            <div className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900 sm:px-9">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-white/[0.06] bg-[#1a1a1a] px-5 py-3.5 text-sm text-[#a0a0a0]">
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 shrink-0 text-sky-700" />
+                <Lock
+                  aria-hidden="true"
+                  className="h-4 w-4 shrink-0 text-[#898989]"
+                />
                 <span>
-                  <strong>Site-Scoped Analytics Active:</strong> Viewing strictly{" "}
-                  <strong>{shortGodownName(lockedGodownName)}</strong> (
-                  {activeStaffWarehouse?.project_id}). Other sites&apos; yards are
+                  Viewing{" "}
+                  <span className="font-medium text-white">
+                    {shortGodownName(lockedGodownName)}
+                  </span>{" "}
+                  ({activeStaffWarehouse?.project_id}) only. Other sites are
                   hidden under RBAC.
                 </span>
               </div>
@@ -783,65 +773,68 @@ export default function PlannerView(props: PlannerViewProps = {}) {
                 <button
                   type="button"
                   onClick={() => setActiveSubTab("workflow")}
-                  className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-full bg-white px-4 text-sm font-medium text-black transition-all duration-200 hover:opacity-90 active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212] cursor-pointer"
                 >
-                  Review {pendingConsentForUserCount} Pickup Consent Request
+                  Review {pendingConsentForUserCount} pickup consent request
+                  {pendingConsentForUserCount === 1 ? "" : "s"}
                 </button>
               )}
             </div>
           )}
 
-          {/* 1. Compact Toolbar Header — Metrics First, Zero Fluff */}
-          <header className="relative px-4 py-4 sm:px-7">
-            <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                <h2 className="hp-heading text-lg font-extrabold text-[#14141c] whitespace-nowrap">
-                  Ordering Planner
-                </h2>
-                <span className="hp-italic text-[21px] text-[#31263b] whitespace-nowrap">
-                  causal replay
-                </span>
-              </div>
+          {/* 1. Editorial Toolbar Header */}
+          <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="font-serif text-[30px] font-normal leading-[1.2] tracking-[-0.015em] text-[#e7e7e7] sm:text-[36px]">
+                Ordering planner
+              </h2>
+              <p className="mt-1 text-sm text-[#a0a0a0]">
+                44-month causal replay across 6 Kanpur construction godowns.
+              </p>
+            </div>
 
-              <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center">
-                <select
-                  id="planner-item-select"
-                  aria-label="Select tracked material"
-                  value={selectedItemCode}
-                  onChange={(e) => {
-                    setSelectedItemCode(e.target.value);
-                    setDecisionFilter("ALL");
-                  }}
-                  className="hp-select sm:w-72"
-                >
-                  {metadata.items.map((it) => (
-                    <option key={it.item_code} value={it.item_code}>
-                      {it.item_code} — {it.item_name} ({it.unit})
-                    </option>
-                  ))}
-                </select>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <select
+                id="planner-item-select"
+                aria-label="Select tracked material"
+                value={selectedItemCode}
+                onChange={(e) => {
+                  setSelectedItemCode(e.target.value);
+                  setDecisionFilter("ALL");
+                }}
+                className="h-9 w-full rounded-full border border-white/[0.09] bg-[#151515] px-4 text-sm text-[#e7e7e7] transition-colors focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 sm:w-80"
+              >
+                {metadata.items.map((it) => (
+                  <option
+                    key={it.item_code}
+                    value={it.item_code}
+                    className="bg-[#1a1a1a] text-[#e7e7e7]"
+                  >
+                    {it.item_code} — {it.item_name} ({it.unit})
+                  </option>
+                ))}
+              </select>
 
-                <PrimaryPlateButton
-                  variant="light"
-                  onClick={() => setShowAllMatrix((prev) => !prev)}
-                >
-                  {showAllMatrix ? (
-                    <>
-                      Hide SKUs
-                      <ChevronUp className="h-3.5 w-3.5 text-[#43394c]" />
-                    </>
-                  ) : (
-                    <>
-                      All 16 SKUs
-                      <ChevronDown className="h-3.5 w-3.5 text-[#43394c]" />
-                    </>
-                  )}
-                </PrimaryPlateButton>
-              </div>
+              <PrimaryPlateButton
+                variant="light"
+                onClick={() => setShowAllMatrix((prev) => !prev)}
+              >
+                {showAllMatrix ? (
+                  <>
+                    Hide SKUs
+                    <ChevronUp className="h-4 w-4 text-[#a0a0a0]" />
+                  </>
+                ) : (
+                  <>
+                    All 16 SKUs
+                    <ChevronDown className="h-4 w-4 text-[#a0a0a0]" />
+                  </>
+                )}
+              </PrimaryPlateButton>
             </div>
           </header>
 
-          {/* 2. Continuous 4-Column Ruled Proof Strip ("The Bar") + Optional Matrix */}
+          {/* 2. Continuous 4-Column Proof Strip + Optional 16-SKU Matrix */}
           <TheBarScorecard
             selected={selectedSummary}
             allSummaries={summaries}
@@ -855,71 +848,81 @@ export default function PlannerView(props: PlannerViewProps = {}) {
             scopedTransferCount={allItemTransferRoutes.length}
           />
 
-          {/* 3. Airy Workspace Body */}
-          <div className="relative z-10 space-y-9 px-4 py-7 sm:space-y-12 sm:px-9 sm:py-11">
-            <IdleStockChart
-              summary={selectedSummary}
-              activeMonth={activeMonth}
-              onSelectMonth={handleSelectMonthByString}
-              scopedGodown={lockedGodownName}
-              footerSlot={
-                <MonthScrubber
-                  months={months}
-                  monthIndex={monthIndex}
-                  onChangeMonthIndex={(idx) => {
-                    setIsPlaying(false);
-                    setMonthIndex(idx);
-                  }}
-                  isPlaying={isPlaying}
-                  onTogglePlay={handleTogglePlay}
-                  selectedItem={selectedItem}
-                  contractorIdleStock={contractorIdleStock}
-                  totalProjectedDemand={totalProjectedDemand}
-                  scopedGodown={lockedGodownName}
-                  scopedProjectedDemand={
-                    scopedMonthAction?.projected_monthly_demand ?? null
-                  }
-                />
-              }
-            />
+          {/* 3. Idle Stock Trajectory + Docked Month Scrubber */}
+          <IdleStockChart
+            summary={selectedSummary}
+            activeMonth={activeMonth}
+            onSelectMonth={handleSelectMonthByString}
+            scopedGodown={lockedGodownName}
+            footerSlot={
+              <MonthScrubber
+                months={months}
+                monthIndex={monthIndex}
+                onChangeMonthIndex={(idx) => {
+                  setIsPlaying(false);
+                  setMonthIndex(idx);
+                }}
+                isPlaying={isPlaying}
+                onTogglePlay={handleTogglePlay}
+                selectedItem={selectedItem}
+                contractorIdleStock={contractorIdleStock}
+                totalProjectedDemand={totalProjectedDemand}
+                scopedGodown={lockedGodownName}
+                scopedProjectedDemand={
+                  scopedMonthAction?.projected_monthly_demand ?? null
+                }
+              />
+            }
+          />
 
-            {/* Monthly Godown Decisions (RBAC-Scoped) */}
-            <ActionCardsGrid
-              actions={filteredMonthActions}
-              activeMonth={activeMonth}
-              godowns={metadata.godowns}
-              selectedGodown={selectedGodown}
-              onChangeGodown={setSelectedGodown}
-              lockedGodown={lockedGodownName}
-              decisionFilter={decisionFilter}
-              onChangeDecisionFilter={setDecisionFilter}
-              decisionCounts={decisionCounts}
-            />
+          {/* 4. Monthly Godown Decisions (RBAC-Scoped) */}
+          <ActionCardsGrid
+            actions={filteredMonthActions}
+            activeMonth={activeMonth}
+            godowns={metadata.godowns}
+            selectedGodown={selectedGodown}
+            onChangeGodown={setSelectedGodown}
+            lockedGodown={lockedGodownName}
+            decisionFilter={decisionFilter}
+            onChangeDecisionFilter={setDecisionFilter}
+            decisionCounts={decisionCounts}
+          />
 
-            {/* Stage A LP Transfer Logistics (RBAC-Scoped) */}
-            <TransferLogisticsPanel
-              monthRoutes={monthTransferRoutes}
-              allItemRoutes={allItemTransferRoutes}
-              activeMonth={activeMonth}
-              unit={selectedItem.unit}
-              leadTimeDays={selectedItem.lead_time_days}
-              scopedGodown={lockedGodownName}
-            />
+          {/* 5. Stage A LP Transfer Logistics (RBAC-Scoped) */}
+          <TransferLogisticsPanel
+            monthRoutes={monthTransferRoutes}
+            allItemRoutes={allItemTransferRoutes}
+            activeMonth={activeMonth}
+            unit={selectedItem.unit}
+            leadTimeDays={selectedItem.lead_time_days}
+            scopedGodown={lockedGodownName}
+          />
 
-            <div className="space-y-4 pt-2">
-              <FadingRulesDivider />
-              <footer className="hp-mono flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.07em] text-[#89828d]">
-                <span>
-                  Lumino · Plan It · Strictly causal (t_obs ≤ t) · 6 Active
-                  Kanpur Godowns
-                </span>
-                <span>
-                  {metadata.date_range.start} → {metadata.date_range.end} ·
-                  Receipts end {metadata.date_range.receipts_end} · Native UOMs
-                </span>
-              </footer>
+          {/* 6. Quiet Collapsed Methodology & Domain Guardrails */}
+          <details className="rounded-[20px] border border-white/[0.06] bg-[#1a1a1a] px-6 py-3.5 text-xs text-[#a0a0a0]">
+            <summary className="cursor-pointer select-none rounded font-medium text-[#e7e7e7] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50">
+              Methodology &amp; simulation guardrails
+            </summary>
+            <div className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3 leading-relaxed">
+              <p>
+                Strictly causal replay (t_obs ≤ t) across the 6 active Kanpur
+                construction godowns; KANPUR CLOSER is excluded as a 2026
+                wind-down store.
+              </p>
+              <p>
+                Timeline covers {metadata.date_range.start} through{" "}
+                {metadata.date_range.end} (44 months). Vendor receipts cease
+                after {metadata.date_range.receipts_end}, activating wind-down
+                order throttling.
+              </p>
+              <p>
+                Stage A linear programming solves minimum-distance local
+                transfers (45–150 km) with donor horizon protection before
+                issuing new vendor orders. All figures retain native per-SKU
+                UOMs.
+              </p>
             </div>
-          </div>
+          </details>
         </div>
       )}
 

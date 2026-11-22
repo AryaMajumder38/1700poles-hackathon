@@ -2,8 +2,8 @@
 
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import type { ItemMaster } from "@/types/lumino";
-import { PrimaryPlateButton } from "./HexPrimitives";
-import { formatQty, shortGodownName } from "./plannerTypes";
+import { PrimaryPlateButton, QtyText } from "./HexPrimitives";
+import { shortGodownName } from "./plannerTypes";
 
 export type DecisionFilter = "ALL" | "ORDER" | "TRANSFER" | "HOLD" | "WAIT";
 
@@ -24,8 +24,8 @@ const MILESTONES = [
   { month: "2023-03", label: "Launch" },
   { month: "2023-11", label: "Transfers" },
   { month: "2024-08", label: "Surge" },
-  { month: "2025-02", label: "Peak Idle" },
-  { month: "2026-07", label: "Wind-Down" },
+  { month: "2025-02", label: "Peak idle" },
+  { month: "2026-07", label: "Wind-down" },
 ];
 
 export default function MonthScrubber({
@@ -50,19 +50,17 @@ export default function MonthScrubber({
     <div
       id="planner-replay-console"
       aria-label="Causal Replay Timeline Scrubber"
-      className="hp-charcoal px-5 py-5 sm:px-6"
+      className="border-t border-white/[0.06] bg-[#151515] px-6 py-4"
     >
-      <div className="hp-lavender-glow" />
-
-      <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Left: Playback + Month Readout */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => onChangeMonthIndex(Math.max(0, monthIndex - 1))}
             disabled={monthIndex === 0}
             aria-label="Previous month"
-            className="hp-btn-dark h-[38px] w-[38px]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.06] text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#151515] disabled:opacity-35 cursor-pointer"
           >
             <SkipBack className="h-3.5 w-3.5" />
           </button>
@@ -91,56 +89,69 @@ export default function MonthScrubber({
             }
             disabled={monthIndex === months.length - 1}
             aria-label="Next month"
-            className="hp-btn-dark h-[38px] w-[38px]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.06] text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#151515] disabled:opacity-35 cursor-pointer"
           >
             <SkipForward className="h-3.5 w-3.5" />
           </button>
 
-          <div className="ml-0 border-l-0 pl-0 sm:ml-2 sm:border-l sm:border-[#3a3138] sm:pl-4">
-            <div className="hp-mono hp-dark-gradient text-xl font-semibold leading-none tracking-tight">
+          <div className="pl-1 sm:ml-2 sm:border-l sm:border-white/[0.08] sm:pl-4">
+            <div className="text-base font-medium leading-none text-white tabular-nums">
               {activeMonth}
             </div>
-            <div className="hp-mono mt-1 text-[10px] uppercase tracking-[0.07em] text-[#99797d]">
-              Month {String(monthIndex + 1).padStart(2, "0")}/{months.length} · Causal (t ≤ {activeMonth})
+            <div className="mt-1 text-xs text-[#898989] tabular-nums">
+              Month {String(monthIndex + 1).padStart(2, "0")}/{months.length} ·
+              Causal (t ≤ {activeMonth})
             </div>
           </div>
         </div>
 
-        {/* Right: Quiet Inline Mono Telemetry */}
-        <div className="hp-mono flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] text-[#e3b2b3]">
+        {/* Right: Quiet Inline Telemetry */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-[#898989] tabular-nums">
           <span>
-            <span className="text-[#99797d]">LEAD TIME </span>
-            <span className="text-[#ffffff]">{selectedItem.lead_time_days}d</span>
+            Lead time{" "}
+            <span className="font-medium text-white">
+              {selectedItem.lead_time_days}d
+            </span>
           </span>
           {scopedGodown && scopedProjectedDemand != null && (
             <span>
-              <span className="text-[#99797d]">
-                {shortGodownName(scopedGodown).toUpperCase()} DEMAND{" "}
-              </span>
-              <span className="text-[#ffffff]">
-                {formatQty(scopedProjectedDemand, selectedItem.unit)}
-              </span>
+              {shortGodownName(scopedGodown)} demand{" "}
+              <QtyText
+                value={scopedProjectedDemand}
+                unit={selectedItem.unit}
+                className="font-medium text-white"
+              />
             </span>
           )}
           <span>
-            <span className="text-[#99797d]">
-              CONTRACTOR IDLE{scopedGodown ? " (PROJECT-WIDE)" : ""}{" "}
-            </span>
-            <span className={throttleActive ? "text-[#f5c0c0]" : "text-[#ffffff]"}>
-              {formatQty(contractorIdleStock, selectedItem.unit)}
-              {throttleActive ? " (θ=0.5)" : ""}
-            </span>
+            Contractor idle{scopedGodown ? " (project-wide)" : ""}{" "}
+            <QtyText
+              value={contractorIdleStock}
+              unit={selectedItem.unit}
+              className={
+                throttleActive
+                  ? "font-medium text-amber-300"
+                  : "font-medium text-white"
+              }
+            />
+            {throttleActive && (
+              <span className="ml-1 text-amber-300">(θ=0.5)</span>
+            )}
           </span>
           {isWindDown && (
-            <span className="border border-[#f5c0c0]/50 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-[#f5c0c0]">
-              Wind-Down Guard
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.05] px-2.5 py-0.5 text-xs text-[#e7e7e7]">
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.7)]"
+              />
+              Wind-down guard
             </span>
           )}
         </div>
       </div>
 
       {/* Scrubber Slider + Milestone Jumps */}
-      <div className="relative z-10 mt-4 pt-1">
+      <div className="mt-4">
         <input
           type="range"
           min={0}
@@ -150,8 +161,8 @@ export default function MonthScrubber({
           aria-label="Replay month slider"
           className="hp-range"
         />
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-          <span className="hp-mono text-[10px] text-[#99797d]">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-[#898989] tabular-nums">
             {months[0]}
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -164,8 +175,10 @@ export default function MonthScrubber({
                   key={ms.month}
                   type="button"
                   onClick={() => onChangeMonthIndex(idx)}
-                  className={`hp-btn-dark hp-mono px-2.5 py-1 text-[10px] ${
-                    isCurrent ? "is-active" : ""
+                  className={`rounded-full px-3 py-1 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer tabular-nums ${
+                    isCurrent
+                      ? "bg-white font-medium text-black shadow-sm"
+                      : "border border-white/[0.06] bg-white/[0.04] text-[#a0a0a0] hover:bg-white/[0.1] hover:text-white"
                   }`}
                 >
                   {ms.month} · {ms.label}
@@ -173,7 +186,7 @@ export default function MonthScrubber({
               );
             })}
           </div>
-          <span className="hp-mono text-[10px] text-[#99797d]">
+          <span className="text-xs text-[#898989] tabular-nums">
             {months[months.length - 1]}
           </span>
         </div>

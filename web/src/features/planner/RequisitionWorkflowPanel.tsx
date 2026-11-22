@@ -1,19 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  Lock,
-  PackageCheck,
-  Send,
-  ShieldAlert,
-  ShoppingCart,
-  Truck,
-  XCircle,
-} from "lucide-react";
+import { ArrowRight, Lock } from "lucide-react";
 import type { ItemMaster, SimulationAction } from "@/types/lumino";
+import { QtyText } from "./HexPrimitives";
 import {
   getAllCatalogMaterials,
   type MaterialRequisition,
@@ -41,7 +31,11 @@ interface RequisitionWorkflowPanelProps {
     urgency: "HIGH" | "MEDIUM" | "LOW";
     notes: string;
   }) => void;
-  onHeadOrderVendor: (reqId: string, supplierId: string, leadTimeDays: number) => void;
+  onHeadOrderVendor: (
+    reqId: string,
+    supplierId: string,
+    leadTimeDays: number
+  ) => void;
   onHeadRouteTransfer: (
     reqId: string,
     donorWarehouseId: string,
@@ -108,40 +102,73 @@ function estimateDistanceKm(fromName: string, toName: string): number {
   return DISTANCE_LOOKUP[fromName]?.[toName] ?? 85;
 }
 
-function statusBadge(status: RequisitionStatus) {
+function statusMeta(status: RequisitionStatus) {
   switch (status) {
     case "PENDING_HEAD_APPROVAL":
       return {
-        label: "Awaiting Head of Projects",
-        cls: "bg-amber-100 text-amber-900 border-amber-200",
+        label: "Awaiting Head approval",
+        dot: "bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.75)]",
+        text: "text-amber-300",
       };
     case "PENDING_DONOR_CONSENT":
       return {
-        label: "Property Locked · Awaiting Donor Site Consent",
-        cls: "bg-rose-100 text-rose-900 border-rose-300",
+        label: "Awaiting donor consent",
+        dot: "bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.8)]",
+        text: "text-rose-400",
       };
     case "TRANSFER_APPROVED_DISPATCHED":
       return {
-        label: "Donor Approved · Transfer Dispatched",
-        cls: "bg-emerald-100 text-emerald-900 border-emerald-200",
+        label: "Transfer dispatched",
+        dot: "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.75)]",
+        text: "text-emerald-400",
       };
     case "FULFILLED_BY_VENDOR_ORDER":
       return {
-        label: "Fulfilled via New Vendor PO",
-        cls: "bg-blue-100 text-blue-900 border-blue-200",
+        label: "Vendor PO issued",
+        dot: "bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]",
+        text: "text-[#e7e7e7]",
       };
     case "DONOR_DECLINED_REROUTE":
       return {
-        label: "Donor Declined · Reroute Needed",
-        cls: "bg-orange-100 text-orange-900 border-orange-300",
+        label: "Donor declined · reroute",
+        dot: "bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.75)]",
+        text: "text-amber-300",
       };
     default:
       return {
-        label: "Rejected by Head",
-        cls: "bg-slate-100 text-slate-700 border-slate-200",
+        label: "Rejected",
+        dot: "bg-white/25",
+        text: "text-[#898989]",
       };
   }
 }
+
+function urgencyLabel(u: "HIGH" | "MEDIUM" | "LOW") {
+  if (u === "HIGH") return "High";
+  if (u === "MEDIUM") return "Medium";
+  return "Low";
+}
+
+function formatSourceLabel(source: string) {
+  return source
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+const INPUT_CLASS =
+  "h-9 w-full rounded-xl border border-white/[0.1] bg-[#141414] px-3 text-sm text-[#e7e7e7] placeholder:text-[#666666] transition-colors focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50";
+
+const OPTION_CLASS = "bg-[#1a1a1a] text-[#e7e7e7]";
+
+const PRIMARY_BTN =
+  "inline-flex h-9 items-center justify-center rounded-full bg-white px-4 text-sm font-medium text-black transition-all duration-200 hover:opacity-90 active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] disabled:opacity-40 cursor-pointer";
+
+const GHOST_BTN =
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.06] px-3 text-xs font-medium text-[#e7e7e7] transition-all duration-200 hover:bg-white/[0.11] active:bg-white/[0.16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer";
+
+const DESTRUCTIVE_BTN =
+  "inline-flex h-9 items-center justify-center rounded-full border border-rose-500/20 bg-rose-500/10 px-4 text-sm font-medium text-rose-400 transition-all duration-200 hover:bg-rose-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer";
 
 export default function RequisitionWorkflowPanel({
   roleType,
@@ -274,7 +301,8 @@ export default function RequisitionWorkflowPanel({
     const whId = isAdmin
       ? reqWarehouseId
       : activeWarehouse?.warehouse_id ?? reqWarehouseId;
-    if (!whId || !reqItemCode || !Number.isFinite(qtyNum) || qtyNum <= 0) return;
+    if (!whId || !reqItemCode || !Number.isFinite(qtyNum) || qtyNum <= 0)
+      return;
 
     onCreateRequisition({
       warehouse_id: whId,
@@ -292,26 +320,28 @@ export default function RequisitionWorkflowPanel({
 
   return (
     <div className="space-y-6">
-      {/* Priority Banner for Site Manager: Pending Donor Consent Requests */}
+      {/* Priority Section for Site Manager: Pending Donor Consent Requests */}
       {!isAdmin && donorConsentQueue.length > 0 && activeWarehouse && (
-        <section className="space-y-3 rounded-xl border-2 border-rose-300 bg-rose-50/80 p-5 shadow-xs">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-600 text-white">
-              <Lock className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-rose-950">
-                Site Property Consent Required — {activeWarehouse.name}
+        <section
+          aria-label="Site Property Consent Required"
+          className="overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#1a1a1a]"
+        >
+          <div className="border-b border-white/[0.06] px-6 py-4">
+            <div className="flex items-center gap-2.5">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"
+              />
+              <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+                Site property consent required · {activeWarehouse.name}
               </h3>
-              <p className="mt-0.5 text-xs text-rose-800">
-                Materials inside <strong>{activeWarehouse.name}</strong> are the
-                property of your site/project and{" "}
-                <strong>cannot be picked up without your explicit consent</strong>.
-              </p>
             </div>
+            <p className="mt-1 text-sm text-[#a0a0a0]">
+              Yard materials require your approval before transfer pickup.
+            </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="divide-y divide-white/[0.06]">
             {donorConsentQueue.map((req) => {
               const currentStock = getSiteStock(
                 activeWarehouse.name,
@@ -321,78 +351,90 @@ export default function RequisitionWorkflowPanel({
               return (
                 <div
                   key={req.req_id}
-                  className="rounded-lg border border-rose-200 bg-white p-4 shadow-xs"
+                  className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-900">
-                          {req.req_id}
-                        </span>
-                        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800">
-                          Pickup Request: {formatQty(req.qty, req.unit)}
-                        </span>
-                        <span className="font-mono text-[11px] text-slate-500">
-                          {dist} km ({getTransitDays(dist)}d transit) →{" "}
-                          {shortGodownName(req.requesting_warehouse_name)}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs font-semibold text-slate-800">
-                        {req.item_code} — {req.item_name}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-slate-500">
-                        Your Site Property Balance ({activeMonth}):{" "}
-                        <strong className="text-slate-900">
-                          {formatQty(currentStock, req.unit)}
-                        </strong>{" "}
-                        • Requested by {req.requested_by_name} (
-                        {shortGodownName(req.requesting_warehouse_name)})
-                      </p>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="font-mono text-xs text-[#898989]">
+                        {req.req_id}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-400">
+                        <span
+                          aria-hidden="true"
+                          className="h-1.5 w-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.8)]"
+                        />
+                        Pickup{" "}
+                        <QtyText
+                          value={req.qty}
+                          unit={req.unit}
+                          className="text-rose-400"
+                        />
+                      </span>
+                      <span className="text-xs text-[#a0a0a0] tabular-nums">
+                        {dist} km ({getTransitDays(dist)}d) →{" "}
+                        {shortGodownName(req.requesting_warehouse_name)}
+                      </span>
                     </div>
+                    <p className="truncate text-sm font-medium text-[#e7e7e7]">
+                      <span className="font-mono text-xs font-normal text-[#898989]">
+                        {req.item_code}
+                      </span>{" "}
+                      · {req.item_name}
+                    </p>
+                    <p className="text-xs text-[#898989]">
+                      Site balance ({activeMonth}):{" "}
+                      <QtyText
+                        value={currentStock}
+                        unit={req.unit}
+                        className="font-medium text-white"
+                      />{" "}
+                      · Requested by {req.requested_by_name}
+                    </p>
+                  </div>
 
-                    <div className="flex flex-col gap-2 sm:items-end">
-                      <input
-                        type="text"
-                        placeholder="Optional consent / decline note..."
-                        value={consentNoteByReq[req.req_id] ?? ""}
-                        onChange={(e) =>
-                          setConsentNoteByReq((prev) => ({
-                            ...prev,
-                            [req.req_id]: e.target.value,
-                          }))
+                  <div className="flex flex-col gap-2 sm:items-end">
+                    <input
+                      type="text"
+                      aria-label={`Consent note for ${req.req_id}`}
+                      placeholder="Optional note..."
+                      value={consentNoteByReq[req.req_id] ?? ""}
+                      onChange={(e) =>
+                        setConsentNoteByReq((prev) => ({
+                          ...prev,
+                          [req.req_id]: e.target.value,
+                        }))
+                      }
+                      className={`${INPUT_CLASS} sm:w-60`}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onDonorConsentDecision(
+                            req.req_id,
+                            true,
+                            consentNoteByReq[req.req_id] ||
+                              "Approved pickup from surplus yard stock."
+                          )
                         }
-                        className="w-full rounded-lg border border-slate-300 px-2.5 py-1 text-xs sm:w-56"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onDonorConsentDecision(
-                              req.req_id,
-                              true,
-                              consentNoteByReq[req.req_id] ||
-                                "Approved pickup from surplus yard stock."
-                            )
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 cursor-pointer"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve Pickup
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onDonorConsentDecision(
-                              req.req_id,
-                              false,
-                              consentNoteByReq[req.req_id] ||
-                                "Declined: stock committed to local erection schedule."
-                            )
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 cursor-pointer"
-                        >
-                          <XCircle className="h-3.5 w-3.5" /> Decline Pickup
-                        </button>
-                      </div>
+                        className={PRIMARY_BTN}
+                      >
+                        Approve pickup
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onDonorConsentDecision(
+                            req.req_id,
+                            false,
+                            consentNoteByReq[req.req_id] ||
+                              "Declined: stock committed to local erection schedule."
+                          )
+                        }
+                        className={DESTRUCTIVE_BTN}
+                      >
+                        Decline
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -402,39 +444,40 @@ export default function RequisitionWorkflowPanel({
         </section>
       )}
 
-      {/* Top Grid: Create Material Requisition + Requisition Approval & Routing Queue */}
+      {/* Top Grid: Create Material Requisition + Requisition Queue */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Raise Material Requisition (Site Manager -> Head of Projects) */}
+        {/* Left: Raise Material Requisition */}
         <form
           onSubmit={handleSubmitReq}
-          className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-xs lg:col-span-4"
+          className="space-y-4 rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] p-6 lg:col-span-4"
         >
-          <div className="flex items-center gap-2">
-            <Send className="h-4 w-4 text-amber-600" />
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Request Materials (To Project Head)
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                {isAdmin
-                  ? "Submit a requisition on behalf of any site warehouse."
-                  : `Scoped to your site: ${activeWarehouse?.name ?? "Assigned Site"}`}
-              </p>
-            </div>
+          <div>
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Request materials
+            </h3>
+            <p className="mt-0.5 truncate text-xs text-[#a0a0a0]">
+              {isAdmin
+                ? "Submit a requisition on behalf of any site."
+                : `Scoped to ${activeWarehouse?.name ?? "assigned site"}.`}
+            </p>
           </div>
 
           {isAdmin && (
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
-                Requesting Warehouse / Site
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
+                Requesting site
               </label>
               <select
                 value={reqWarehouseId}
                 onChange={(e) => setReqWarehouseId(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
                 {opsState.warehouses.map((w) => (
-                  <option key={w.warehouse_id} value={w.warehouse_id}>
+                  <option
+                    key={w.warehouse_id}
+                    value={w.warehouse_id}
+                    className={OPTION_CLASS}
+                  >
                     {w.name} ({w.project_id})
                   </option>
                 ))}
@@ -442,26 +485,31 @@ export default function RequisitionWorkflowPanel({
             </div>
           )}
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-600">
-              Material (by ID &amp; UOM)
+          <div className="space-y-1.5">
+            <label className="block text-xs font-normal text-[#898989]">
+              Material
             </label>
             <select
               value={reqItemCode}
               onChange={(e) => setReqItemCode(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+              className={INPUT_CLASS}
             >
               {allMaterials.map((m) => (
-                <option key={m.item_code} value={m.item_code}>
-                  {m.item_code} — {m.item_name} ({m.unit}, LT {m.lead_time_days}d)
+                <option
+                  key={m.item_code}
+                  value={m.item_code}
+                  className={OPTION_CLASS}
+                >
+                  {m.item_code} — {m.item_name} ({m.unit}, LT {m.lead_time_days}
+                  d)
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
                 Quantity ({selectedReqMat?.unit ?? "QTY"})
               </label>
               <input
@@ -471,11 +519,11 @@ export default function RequisitionWorkflowPanel({
                 required
                 value={reqQty}
                 onChange={(e) => setReqQty(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+                className={`${INPUT_CLASS} tabular-nums`}
               />
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-normal text-[#898989]">
                 Urgency
               </label>
               <select
@@ -483,59 +531,62 @@ export default function RequisitionWorkflowPanel({
                 onChange={(e) =>
                   setReqUrgency(e.target.value as "HIGH" | "MEDIUM" | "LOW")
                 }
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                className={INPUT_CLASS}
               >
-                <option value="HIGH">HIGH (Immediate)</option>
-                <option value="MEDIUM">MEDIUM (This Month)</option>
-                <option value="LOW">LOW (Planned Buffer)</option>
+                <option value="HIGH" className={OPTION_CLASS}>
+                  High (immediate)
+                </option>
+                <option value="MEDIUM" className={OPTION_CLASS}>
+                  Medium (this month)
+                </option>
+                <option value="LOW" className={OPTION_CLASS}>
+                  Low (planned)
+                </option>
               </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-600">
-              Site Justification
+          <div className="space-y-1.5">
+            <label className="block text-xs font-normal text-[#898989]">
+              Site justification
             </label>
             <textarea
               rows={2}
-              placeholder="e.g. Feeder gang waiting for poles / clamp sets..."
+              placeholder="e.g. Feeder gang waiting for poles..."
               value={reqNotes}
               onChange={(e) => setReqNotes(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs"
+              className="w-full rounded-xl border border-white/[0.1] bg-[#141414] px-3 py-2 text-sm text-[#e7e7e7] placeholder:text-[#666666] transition-colors focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             />
           </div>
 
-          <button
-            type="submit"
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
-          >
-            <Send className="h-3.5 w-3.5" /> Send Request to Head of Projects
+          <button type="submit" className={`${PRIMARY_BTN} w-full`}>
+            Send request to Head of Projects
           </button>
         </form>
 
-        {/* Right: Requisition Queue & Head of Projects Fulfillment Console */}
-        <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-xs lg:col-span-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
+        {/* Right: Requisition Queue */}
+        <section className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] lg:col-span-8">
+          <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-6 py-4">
+            <div className="min-w-0">
+              <h3 className="text-[17px] font-medium text-[#e7e7e7]">
                 {isAdmin
-                  ? "Head of Projects — Requisition Approval & Fulfillment Queue"
-                  : `Site Requisition & Transfer Status (${activeWarehouse?.name ?? ""})`}
+                  ? "Requisition approval queue"
+                  : `Site requisitions (${activeWarehouse?.name ?? ""})`}
               </h3>
-              <p className="text-[11px] text-slate-500">
-                Head approves via new vendor PO or inter-site transfer; donor site
-                manager consent is mandatory before pickup.
+              <p className="mt-0.5 truncate text-xs text-[#a0a0a0]">
+                Route from a surplus site (with donor consent) or issue a vendor
+                PO.
               </p>
             </div>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700">
-              {visibleRequisitions.length} Record
+            <span className="shrink-0 rounded-full border border-white/[0.06] bg-white/[0.04] px-3 py-1 text-xs text-[#a0a0a0] tabular-nums">
+              {visibleRequisitions.length} record
               {visibleRequisitions.length === 1 ? "" : "s"}
             </span>
           </div>
 
-          <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+          <div className="max-h-[540px] divide-y divide-white/[0.06] overflow-y-auto">
             {visibleRequisitions.map((req) => {
-              const badge = statusBadge(req.status);
+              const status = statusMeta(req.status);
               const recDonor = getRecommendedDonor(req);
               const canHeadAct =
                 isAdmin &&
@@ -558,7 +609,6 @@ export default function RequisitionWorkflowPanel({
                 opsState.suppliers[0]?.supplier_id ??
                 "";
 
-              // Find donor manager for quick demo switch button
               const donorManager = req.donor_warehouse_id
                 ? opsState.staff.find(
                     (s) => s.warehouse_id === req.donor_warehouse_id
@@ -566,61 +616,73 @@ export default function RequisitionWorkflowPanel({
                 : null;
 
               return (
-                <article
-                  key={req.req_id}
-                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-900">
+                <article key={req.req_id} className="space-y-3 p-6">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="font-mono text-xs text-[#898989]">
                           {req.req_id}
                         </span>
                         <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${badge.cls}`}
+                          className={`inline-flex items-center gap-1.5 text-xs font-medium ${status.text}`}
                         >
-                          {badge.label}
+                          <span
+                            aria-hidden="true"
+                            className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
+                          />
+                          {status.label}
                         </span>
-                        <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
-                          {req.urgency}
-                        </span>
                       </div>
-                      <div className="mt-1.5 text-xs font-bold text-slate-900">
-                        {formatQty(req.qty, req.unit)} of {req.item_code} —{" "}
-                        {req.item_name}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-slate-600">
-                        Site:{" "}
-                        <strong>{shortGodownName(req.requesting_warehouse_name)}</strong>{" "}
-                        • Requested by {req.requested_by_name} on {req.created_at}
-                      </div>
-                      <p className="mt-1 text-[11px] italic text-slate-500">
-                        &ldquo;{req.notes}&rdquo;
-                      </p>
+                      <span className="rounded-full border border-white/[0.06] bg-white/[0.05] px-2.5 py-0.5 text-xs text-[#a0a0a0]">
+                        {urgencyLabel(req.urgency)}
+                      </span>
                     </div>
+
+                    <div className="text-sm font-medium text-[#e7e7e7]">
+                      <QtyText value={req.qty} unit={req.unit} />{" "}
+                      <span className="font-normal text-[#898989]">·</span>{" "}
+                      <span className="font-mono text-xs font-normal text-[#a0a0a0]">
+                        {req.item_code}
+                      </span>{" "}
+                      {req.item_name}
+                    </div>
+
+                    <div className="text-xs text-[#898989]">
+                      {shortGodownName(req.requesting_warehouse_name)} ·
+                      Requested by {req.requested_by_name} on {req.created_at}
+                    </div>
+
+                    <p
+                      title={req.notes}
+                      className="truncate text-xs text-[#a0a0a0]"
+                    >
+                      {req.notes}
+                    </p>
                   </div>
 
-                  {/* Donor Transfer Info & Consent Lock Status */}
+                  {/* Donor Transfer Info Row */}
                   {req.donor_warehouse_name && (
-                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px]">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-xs text-[#a0a0a0]">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Truck className="h-3.5 w-3.5 text-sky-600" />
-                        <span className="font-semibold text-slate-800">
+                        <span className="font-medium text-[#e7e7e7]">
                           {shortGodownName(req.donor_warehouse_name)}
                         </span>
-                        <ArrowRight className="h-3 w-3 text-slate-400" />
-                        <span className="font-semibold text-emerald-800">
+                        <ArrowRight
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 text-[#898989]"
+                        />
+                        <span className="font-medium text-emerald-400">
                           {shortGodownName(req.requesting_warehouse_name)}
                         </span>
                         {req.transfer_distance_km !== undefined && (
-                          <span className="font-mono text-slate-500">
+                          <span className="text-[#898989] tabular-nums">
                             ({req.transfer_distance_km} km ·{" "}
                             {getTransitDays(req.transfer_distance_km)}d)
                           </span>
                         )}
                         {req.donor_selection_mode === "LP_RECOMMENDED" && (
-                          <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-800">
-                            LP Recommended
+                          <span className="text-violet-300/80">
+                            · LP suggested
                           </span>
                         )}
                       </div>
@@ -630,30 +692,38 @@ export default function RequisitionWorkflowPanel({
                         donorManager && (
                           <button
                             type="button"
-                            onClick={() => onSwitchToStaff(donorManager.staff_id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-1 cursor-pointer"
+                            onClick={() =>
+                              onSwitchToStaff(donorManager.staff_id)
+                            }
+                            className={GHOST_BTN}
                           >
-                            <Lock className="h-3 w-3" /> Switch to{" "}
-                            {donorManager.name} to Consent
+                            <Lock
+                              aria-hidden="true"
+                              className="h-3 w-3 text-[#898989]"
+                            />
+                            Switch to {donorManager.name}
                           </button>
                         )}
                     </div>
                   )}
 
                   {req.donor_decision_note && (
-                    <div className="mt-1.5 text-[11px] text-slate-600">
-                      <strong>Donor Manager Note:</strong> {req.donor_decision_note}
-                    </div>
+                    <p className="truncate text-xs text-[#a0a0a0]">
+                      <span className="font-medium text-[#e7e7e7]">
+                        Donor note:
+                      </span>{" "}
+                      {req.donor_decision_note}
+                    </p>
                   )}
 
-                  {/* Head of Projects Decision Controls */}
+                  {/* Head of Projects Fulfillment Divider Section */}
                   {canHeadAct && (
-                    <div className="mt-3 space-y-2.5 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+                    <div className="space-y-3 border-t border-white/[0.06] pt-3.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900">
-                          Head of Projects Fulfillment Action
+                        <span className="text-xs font-normal text-[#898989]">
+                          Fulfillment action
                         </span>
-                        <div className="inline-flex flex-wrap rounded-md border border-amber-300 bg-white p-0.5 text-[11px]">
+                        <div className="inline-flex rounded-full border border-white/[0.06] bg-white/[0.05] p-1 text-xs">
                           <button
                             type="button"
                             onClick={() =>
@@ -662,13 +732,13 @@ export default function RequisitionWorkflowPanel({
                                 [req.req_id]: "TRANSFER",
                               }))
                             }
-                            className={`rounded px-2.5 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer ${
+                            className={`rounded-full px-3 py-1 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
                               mode === "TRANSFER"
-                                ? "bg-slate-900 text-white"
-                                : "text-slate-700"
+                                ? "bg-white font-medium text-black shadow-sm"
+                                : "text-[#a0a0a0] hover:text-white"
                             }`}
                           >
-                            Route from Site (Needs Consent)
+                            Route from site
                           </button>
                           <button
                             type="button"
@@ -678,13 +748,13 @@ export default function RequisitionWorkflowPanel({
                                 [req.req_id]: "VENDOR",
                               }))
                             }
-                            className={`rounded px-2.5 py-1 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer ${
+                            className={`rounded-full px-3 py-1 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
                               mode === "VENDOR"
-                                ? "bg-slate-900 text-white"
-                                : "text-slate-700"
+                                ? "bg-white font-medium text-black shadow-sm"
+                                : "text-[#a0a0a0] hover:text-white"
                             }`}
                           >
-                            Create New Vendor Order
+                            New vendor PO
                           </button>
                         </div>
                       </div>
@@ -692,6 +762,7 @@ export default function RequisitionWorkflowPanel({
                       {mode === "TRANSFER" ? (
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                           <select
+                            aria-label={`Select donor site for ${req.req_id}`}
                             value={chosenDonorId}
                             onChange={(e) =>
                               setSelectedDonorByReq((prev) => ({
@@ -699,7 +770,7 @@ export default function RequisitionWorkflowPanel({
                                 [req.req_id]: e.target.value,
                               }))
                             }
-                            className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                            className={`${INPUT_CLASS} flex-1`}
                           >
                             {opsState.warehouses
                               .filter(
@@ -716,9 +787,13 @@ export default function RequisitionWorkflowPanel({
                                   recDonor?.warehouse.warehouse_id ===
                                   w.warehouse_id;
                                 return (
-                                  <option key={w.warehouse_id} value={w.warehouse_id}>
-                                    {isRec ? "★ LP Recommended: " : "Custom: "}
-                                    {shortGodownName(w.name)} — On Hand:{" "}
+                                  <option
+                                    key={w.warehouse_id}
+                                    value={w.warehouse_id}
+                                    className={OPTION_CLASS}
+                                  >
+                                    {isRec ? "LP suggested: " : "Custom: "}
+                                    {shortGodownName(w.name)} — On hand:{" "}
                                     {formatQty(st, req.unit)} ({d} km)
                                   </option>
                                 );
@@ -743,14 +818,14 @@ export default function RequisitionWorkflowPanel({
                                 d
                               );
                             }}
-                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-sky-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
+                            className={`${PRIMARY_BTN} shrink-0`}
                           >
-                            <Lock className="h-3.5 w-3.5" /> Request Donor Consent
+                            Request donor consent
                           </button>
                           <button
                             type="button"
                             onClick={() => onHeadReject(req.req_id)}
-                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
+                            className={`${DESTRUCTIVE_BTN} shrink-0`}
                           >
                             Reject
                           </button>
@@ -758,6 +833,7 @@ export default function RequisitionWorkflowPanel({
                       ) : (
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                           <select
+                            aria-label={`Select supplier for ${req.req_id}`}
                             value={chosenSupId}
                             onChange={(e) =>
                               setSelectedSupplierByReq((prev) => ({
@@ -765,12 +841,17 @@ export default function RequisitionWorkflowPanel({
                                 [req.req_id]: e.target.value,
                               }))
                             }
-                            className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs"
+                            className={`${INPUT_CLASS} flex-1`}
                           >
                             {opsState.suppliers.map((s) => (
-                              <option key={s.supplier_id} value={s.supplier_id}>
-                                {s.supplier_id} — {s.name} (avg {s.avg_delivery_days}d ·{" "}
-                                {s.on_time_rate_pct}% on-time)
+                              <option
+                                key={s.supplier_id}
+                                value={s.supplier_id}
+                                className={OPTION_CLASS}
+                              >
+                                {s.supplier_id} — {s.name} (avg{" "}
+                                {s.avg_delivery_days}d · {s.on_time_rate_pct}%
+                                on-time)
                               </option>
                             ))}
                           </select>
@@ -783,14 +864,14 @@ export default function RequisitionWorkflowPanel({
                                 matObj?.lead_time_days ?? 60
                               )
                             }
-                            className="inline-flex items-center justify-center gap-1 rounded-lg bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 cursor-pointer"
+                            className={`${PRIMARY_BTN} shrink-0`}
                           >
-                            <ShoppingCart className="h-3.5 w-3.5" /> Issue Vendor PO
+                            Issue vendor PO
                           </button>
                           <button
                             type="button"
                             onClick={() => onHeadReject(req.req_id)}
-                            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 cursor-pointer"
+                            className={`${DESTRUCTIVE_BTN} shrink-0`}
                           >
                             Reject
                           </button>
@@ -805,86 +886,103 @@ export default function RequisitionWorkflowPanel({
         </section>
       </div>
 
-      {/* Bottom Row: Vendor Lead-Time & Delivery Monitor + Site Ownership Audit Log */}
+      {/* Bottom Row: Vendor Order Monitor + Custody Ledger */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Vendor Lead-Time & Delivery Tracker */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs lg:col-span-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
-              <h3 className="text-sm font-bold text-slate-900">
-                Vendor Order Lead-Time &amp; Delivery Time Monitor
-              </h3>
-            </div>
-            <span className="font-mono text-[11px] text-slate-500">
+        {/* Vendor Order Lead-Time & Delivery Tracker */}
+        <section className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] lg:col-span-8">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Vendor order lead-time monitor
+            </h3>
+            <span className="rounded-full border border-white/[0.06] bg-white/[0.04] px-3 py-1 text-xs text-[#a0a0a0] tabular-nums">
               {visibleOrders.length} PO{visibleOrders.length === 1 ? "" : "s"}
             </span>
           </div>
 
-          <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-xs">
-              <thead className="bg-slate-100 text-slate-700">
-                <tr>
-                  <th className="px-2.5 py-2 text-left font-semibold">PO / Site</th>
-                  <th className="px-2.5 py-2 text-left font-semibold">Item &amp; Qty</th>
-                  <th className="px-2.5 py-2 text-left font-semibold">Supplier ID</th>
-                  <th className="px-2.5 py-2 text-right font-semibold">Lead / ETA</th>
-                  <th className="px-2.5 py-2 text-right font-semibold">Delivery Status</th>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead>
+                <tr className="border-b border-white/[0.06] bg-white/[0.025] text-xs font-normal text-[#898989]">
+                  <th className="px-6 py-2.5 text-left font-normal">
+                    PO / site
+                  </th>
+                  <th className="px-4 py-2.5 text-left font-normal">
+                    Item &amp; qty
+                  </th>
+                  <th className="px-4 py-2.5 text-left font-normal">
+                    Supplier
+                  </th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Lead / ETA
+                  </th>
+                  <th className="px-6 py-2.5 text-right font-normal">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/[0.05] text-sm">
                 {visibleOrders.map((po) => {
                   const variance =
                     po.actual_delivery_days !== undefined
                       ? po.actual_delivery_days - po.promised_lead_time_days
                       : null;
                   return (
-                    <tr key={po.order_id} className="hover:bg-slate-50">
-                      <td className="px-2.5 py-2">
-                        <div className="font-mono font-bold text-slate-900">
+                    <tr
+                      key={po.order_id}
+                      className="transition-colors duration-150 hover:bg-white/[0.03]"
+                    >
+                      <td className="px-6 py-3">
+                        <div className="font-mono text-xs text-white">
                           {po.order_id}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-xs text-[#898989]">
                           {shortGodownName(po.destination_warehouse_name)}
                         </div>
                       </td>
-                      <td className="px-2.5 py-2">
-                        <div className="font-semibold text-slate-900">
-                          {formatQty(po.qty, po.unit)}
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-white">
+                          <QtyText value={po.qty} unit={po.unit} />
                         </div>
-                        <div className="max-w-[180px] truncate text-[11px] text-slate-500">
-                          {po.item_code} · {po.item_name}
+                        <div
+                          title={po.item_name}
+                          className="max-w-[200px] truncate text-xs text-[#898989]"
+                        >
+                          <span className="font-mono text-[#a0a0a0]">
+                            {po.item_code}
+                          </span>{" "}
+                          · {po.item_name}
                         </div>
                       </td>
-                      <td className="px-2.5 py-2">
-                        <div className="font-mono text-[11px] font-semibold text-slate-800">
+                      <td className="px-4 py-3">
+                        <div className="font-mono text-xs text-[#898989]">
                           {po.supplier_id}
                         </div>
-                        <div className="max-w-[140px] truncate text-[11px] text-slate-500">
+                        <div className="max-w-[160px] truncate text-xs text-[#a0a0a0]">
                           {po.supplier_name}
                         </div>
                       </td>
-                      <td className="px-2.5 py-2 text-right font-mono tabular-nums">
-                        <div className="font-semibold text-slate-800">
-                          {po.promised_lead_time_days}d LT
+                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                        <div className="text-sm font-medium text-white">
+                          {po.promised_lead_time_days}d
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-xs text-[#898989]">
                           ETA {po.expected_delivery_date}
                         </div>
                       </td>
-                      <td className="px-2.5 py-2 text-right">
+                      <td className="whitespace-nowrap px-6 py-3 text-right">
                         {po.status === "DELIVERED" ? (
                           <div>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                              <PackageCheck className="h-3 w-3" /> Delivered (
-                              {po.actual_delivery_days}d)
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                              <span
+                                aria-hidden="true"
+                                className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.75)]"
+                              />
+                              Delivered ({po.actual_delivery_days}d)
                             </span>
                             {variance !== null && (
                               <div
-                                className={`mt-0.5 font-mono text-[10px] ${
+                                className={`mt-0.5 text-xs tabular-nums ${
                                   variance <= 0
-                                    ? "text-emerald-700"
-                                    : "text-rose-700"
+                                    ? "text-emerald-400"
+                                    : "text-rose-400"
                                 }`}
                               >
                                 {variance <= 0
@@ -894,14 +992,21 @@ export default function RequisitionWorkflowPanel({
                             )}
                           </div>
                         ) : (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-800">
-                              {po.status}
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#e7e7e7]">
+                              <span
+                                aria-hidden="true"
+                                className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.75)]"
+                              />
+                              {po.status === "IN_TRANSIT"
+                                ? "In transit"
+                                : "Ordered"}
                             </span>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5">
                               <input
                                 type="number"
                                 min={1}
+                                aria-label={`Actual delivery days for ${po.order_id}`}
                                 placeholder={`${po.promised_lead_time_days}d`}
                                 value={deliveryDaysInput[po.order_id] ?? ""}
                                 onChange={(e) =>
@@ -910,7 +1015,7 @@ export default function RequisitionWorkflowPanel({
                                     [po.order_id]: e.target.value,
                                   }))
                                 }
-                                className="w-14 rounded border border-slate-300 px-1.5 py-0.5 text-right font-mono text-[10px]"
+                                className="h-8 w-16 rounded-full border border-white/[0.1] bg-[#141414] px-2.5 text-right text-xs text-[#e7e7e7] placeholder:text-[#666666] tabular-nums focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
                               />
                               <button
                                 type="button"
@@ -924,7 +1029,7 @@ export default function RequisitionWorkflowPanel({
                                     )
                                   )
                                 }
-                                className="rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-1 cursor-pointer"
+                                className="inline-flex h-8 items-center rounded-full bg-white px-3.5 text-xs font-medium text-black transition-all duration-200 hover:opacity-90 active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer"
                               >
                                 Receive
                               </button>
@@ -941,42 +1046,42 @@ export default function RequisitionWorkflowPanel({
         </section>
 
         {/* Site Property Ownership Audit Trail */}
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs lg:col-span-4">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-emerald-600" />
-            <h3 className="text-sm font-bold text-slate-900">
-              Site Property &amp; Consent Ledger
+        <section className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a] lg:col-span-4">
+          <div className="border-b border-white/[0.06] px-6 py-4">
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              Custody &amp; consent ledger
             </h3>
+            <p className="mt-0.5 truncate text-xs text-[#a0a0a0]">
+              Audit log of custody changes and site manager approvals.
+            </p>
           </div>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            Immutable audit of material custody changes &amp; site manager
-            approvals.
-          </p>
 
-          <div className="mt-3 max-h-60 space-y-2 overflow-y-auto">
+          <div className="max-h-72 divide-y divide-white/[0.05] overflow-y-auto">
             {visibleLedger.map((entry) => (
-              <div
-                key={entry.entry_id}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px]"
-              >
-                <div className="flex items-center justify-between font-mono">
-                  <span className="font-bold text-slate-800">
+              <div key={entry.entry_id} className="px-6 py-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-[#e7e7e7]">
                     {shortGodownName(entry.warehouse_name)}
                   </span>
-                  <span
-                    className={`font-bold ${
-                      entry.qty_delta >= 0 ? "text-emerald-700" : "text-rose-700"
+                  <QtyText
+                    value={entry.qty_delta}
+                    unit={entry.unit}
+                    signed
+                    className={`font-medium ${
+                      entry.qty_delta >= 0
+                        ? "text-emerald-400"
+                        : "text-rose-400"
                     }`}
-                  >
-                    {entry.qty_delta >= 0 ? "+" : ""}
-                    {formatQty(entry.qty_delta, entry.unit)}
-                  </span>
+                  />
                 </div>
-                <div className="mt-0.5 text-slate-700">
-                  {entry.item_code} • {entry.source.replace(/_/g, " ")}
+                <div className="mt-0.5 text-[#a0a0a0]">
+                  <span className="font-mono text-[#898989]">
+                    {entry.item_code}
+                  </span>{" "}
+                  · {formatSourceLabel(entry.source)}
                 </div>
-                <div className="mt-0.5 text-[10px] text-slate-500">
-                  Authorized by: {entry.consent_by} ({entry.timestamp})
+                <div className="mt-0.5 truncate text-[#898989]">
+                  {entry.consent_by} · {entry.timestamp}
                 </div>
               </div>
             ))}

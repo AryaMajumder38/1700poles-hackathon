@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import type { ItemUnit } from "@/types/lumino";
+import { QtyText } from "./HexPrimitives";
 import type {
   PlannerBacktestComparison,
   PlannerMonthlyPoint,
@@ -45,34 +46,35 @@ function ChartTooltip({ active, payload, unit }: CustomTooltipProps) {
   const delta = pt.actual_idle_stock - pt.simulated_idle_stock;
 
   return (
-    <div className="w-64 rounded-[4px] border border-[#3a3138] bg-[#14141c]/95 p-3.5 text-xs text-[#f5c0c0] shadow-xl">
-      <div className="flex items-center justify-between border-b border-[#3a3138] pb-2">
-        <span className="hp-mono font-semibold text-[#ffffff]">{pt.month}</span>
+    <div className="w-64 rounded-2xl border border-white/[0.1] bg-[#1a1a1a]/95 p-3.5 text-xs text-[#e7e7e7] shadow-2xl backdrop-blur-md">
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+        <span className="font-medium text-white tabular-nums">{pt.month}</span>
         {pt.month >= "2026-07" && (
-          <span className="hp-mono border border-[#f5c0c0]/40 px-1.5 py-0.5 text-[10px] uppercase text-[#f5c0c0]">
-            Wind-Down
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.05] px-2 py-0.5 text-[11px] text-[#e7e7e7]">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+            Wind-down
           </span>
         )}
       </div>
 
       <div className="mt-2.5 space-y-1.5 tabular-nums">
         <div className="flex justify-between">
-          <span className="text-[#99797d]">Historical Idle</span>
-          <span className="font-medium text-[#e6c46a]">
+          <span className="text-[#898989]">Historical idle</span>
+          <span className="font-medium text-amber-300">
             {formatQty(pt.actual_idle_stock, unit)}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#99797d]">Simulated Idle</span>
-          <span className="font-medium text-[#7ad3b2]">
+          <span className="text-[#898989]">Simulated idle</span>
+          <span className="font-medium text-teal-300">
             {formatQty(pt.simulated_idle_stock, unit)}
           </span>
         </div>
-        <div className="flex justify-between border-t border-dashed border-[#3a3138] pt-1.5">
-          <span className="text-[#99797d]">Idle Saved</span>
+        <div className="flex justify-between border-t border-white/[0.06] pt-1.5">
+          <span className="text-[#898989]">Idle saved</span>
           <span
-            className={`font-semibold ${
-              delta >= 0 ? "text-[#7ad3b2]" : "text-[#e6c46a]"
+            className={`font-medium ${
+              delta >= 0 ? "text-emerald-400" : "text-amber-300"
             }`}
           >
             {delta >= 0 ? "+" : ""}
@@ -80,32 +82,32 @@ function ChartTooltip({ active, payload, unit }: CustomTooltipProps) {
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#99797d]">Actual Receipts</span>
-          <span className="text-[#e3b2b3]">
+          <span className="text-[#898989]">Actual receipts</span>
+          <span className="text-[#e7e7e7]">
             {formatQty(pt.actual_receipts, unit)}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#99797d]">Simulated Receipts</span>
-          <span className="text-[#ad8eb6]">
+          <span className="text-[#898989]">Simulated receipts</span>
+          <span className="text-violet-300">
             {formatQty(pt.simulated_receipts, unit)}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-[#99797d]">Site Consumption</span>
-          <span className="text-[#ffffff]">
+          <span className="text-[#898989]">Site consumption</span>
+          <span className="font-medium text-white">
             {formatQty(pt.actual_consumption, unit)}
           </span>
         </div>
 
         {shortage > 0 && (
-          <div className="mt-2 border border-[#b43c57]/50 bg-[#b43c57]/15 p-2 text-[#ffd4dc]">
-            <div className="flex justify-between font-semibold">
-              <span>Simulated Shortage</span>
+          <div className="mt-2 border-t border-white/[0.08] pt-2 text-rose-400">
+            <div className="flex justify-between font-medium">
+              <span>Simulated shortage</span>
               <span>{formatQty(shortage, unit)}</span>
             </div>
             {stockoutGodowns.length > 0 && (
-              <div className="mt-0.5 text-[10px] text-[#f5c0c0]">
+              <div className="mt-0.5 text-[#a0a0a0]">
                 Affected:{" "}
                 {stockoutGodowns.map((g) => shortGodownName(g)).join(", ")}
               </div>
@@ -142,84 +144,81 @@ export default function IdleStockChart({
   return (
     <section
       aria-label="Actual vs Planned Idle Stock Curve"
-      className="hp-floating-panel overflow-hidden"
+      className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]"
     >
-      {/* Clean White Panel Header */}
-      <div className="flex flex-col gap-3 border-b border-[#e9e5e8] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      {/* Card Header */}
+      <div className="flex flex-col gap-3 border-b border-white/[0.06] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="hp-heading text-lg font-extrabold text-[#14141c]">
-              {chartMode === "idle" ? (
-                <>
-                  Idle stock trajectory{" "}
-                  <span className="hp-italic text-[23px] font-light text-[#31263b]">
-                    across 44 months
-                  </span>
-                </>
-              ) : (
-                <>
-                  Vendor receipts &amp; site usage{" "}
-                  <span className="hp-italic text-[23px] font-light text-[#31263b]">
-                    cadence
-                  </span>
-                </>
-              )}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+              {chartMode === "idle"
+                ? "Idle stock trajectory (44 months)"
+                : "Vendor receipts vs site usage"}
             </h3>
             {scopedGodown && (
-              <span className="hp-mono inline-flex items-center border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-sky-800">
-                Project-Wide (6 Godowns)
+              <span className="rounded-full border border-white/[0.08] bg-white/[0.05] px-2.5 py-0.5 text-xs text-[#a0a0a0]">
+                Project-wide
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-xs font-light text-[#89828d]">
+          <p className="mt-0.5 truncate text-xs text-[#a0a0a0]">
             {scopedGodown
-              ? "Project-wide backtest series (consumption is tracked project-wide) · "
-              : "Click any point on the curve to jump to that month · "}
+              ? "Project-wide backtest series · "
+              : "Click any point to jump to that month · "}
             {activePoint && (
-              <span className="hp-mono text-[#43394c]">
+              <span className="tabular-nums">
                 {activeMonth} delta:{" "}
-                <strong
-                  style={{ color: activeDelta >= 0 ? "#2c7a62" : "#a98529" }}
-                >
-                  {activeDelta >= 0 ? "−" : "+"}
-                  {formatQty(Math.abs(activeDelta), summary.unit)}
-                </strong>
+                <QtyText
+                  value={
+                    activeDelta >= 0
+                      ? -Math.abs(activeDelta)
+                      : Math.abs(activeDelta)
+                  }
+                  unit={summary.unit}
+                  signed
+                  className={
+                    activeDelta >= 0
+                      ? "font-medium text-emerald-400"
+                      : "font-medium text-amber-300"
+                  }
+                />
               </span>
             )}
           </p>
         </div>
 
-        <div className="inline-flex shrink-0 self-start border border-[#dbd7da] bg-[#fffcfc] sm:self-center">
+        {/* Pill Segmented Control */}
+        <div className="inline-flex shrink-0 self-start rounded-full border border-white/[0.06] bg-white/[0.05] p-1 sm:self-center">
           <button
             type="button"
             aria-pressed={chartMode === "idle"}
             onClick={() => setChartMode("idle")}
-            className={`hp-mono px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
+            className={`rounded-full px-3.5 py-1.5 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
               chartMode === "idle"
-                ? "bg-[#31263b] text-[#fffcfc]"
-                : "text-[#43394c] hover:bg-[#e9e5e8]"
+                ? "bg-white font-medium text-black shadow-sm"
+                : "text-[#a0a0a0] hover:text-white"
             }`}
           >
-            Idle Stock
+            Idle stock
           </button>
           <button
             type="button"
             aria-pressed={chartMode === "receipts"}
             onClick={() => setChartMode("receipts")}
-            className={`hp-mono border-l border-[#dbd7da] px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
+            className={`rounded-full px-3.5 py-1.5 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer ${
               chartMode === "receipts"
-                ? "bg-[#31263b] text-[#fffcfc]"
-                : "text-[#43394c] hover:bg-[#e9e5e8]"
+                ? "bg-white font-medium text-black shadow-sm"
+                : "text-[#a0a0a0] hover:text-white"
             }`}
           >
-            Receipts vs Usage
+            Receipts vs usage
           </button>
         </div>
       </div>
 
       {/* Main Chart Canvas */}
-      <div className="px-4 pt-5 pb-4 sm:px-6">
-        <div className="h-[330px] w-full">
+      <div className="px-6 pt-5 pb-4">
+        <div className="h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             {chartMode === "idle" ? (
               <ComposedChart
@@ -231,27 +230,45 @@ export default function IdleStockChart({
                   }
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e9e5e8" />
+                <defs>
+                  <linearGradient
+                    id="hp-actual-idle-grad"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient
+                    id="hp-sim-idle-grad"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor="#5eead4" stopOpacity={0.24} />
+                    <stop offset="100%" stopColor="#5eead4" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.06)"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="month"
-                  tick={{
-                    fontSize: 11,
-                    fill: "#89828d",
-                    fontFamily: '"IBM Plex Mono", monospace',
-                  }}
-                  axisLine={{ stroke: "#dbd7da" }}
+                  tick={{ fontSize: 11, fill: "#898989" }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
                   tickLine={false}
                   interval={3}
                 />
                 <YAxis
-                  tick={{
-                    fontSize: 11,
-                    fill: "#89828d",
-                    fontFamily: '"IBM Plex Mono", monospace',
-                  }}
+                  tick={{ fontSize: 11, fill: "#898989" }}
                   axisLine={false}
                   tickLine={false}
-                  width={56}
+                  width={54}
                   tickFormatter={(v: number) =>
                     summary.unit === "MT"
                       ? `${v.toFixed(1)}`
@@ -260,55 +277,58 @@ export default function IdleStockChart({
                       : `${v}`
                   }
                 />
-                <Tooltip content={<ChartTooltip unit={summary.unit} />} />
+                <Tooltip
+                  cursor={{ stroke: "rgba(255,255,255,0.16)", strokeWidth: 1 }}
+                  content={<ChartTooltip unit={summary.unit} />}
+                />
                 <Legend
                   wrapperStyle={{
                     fontSize: "11px",
                     paddingTop: "10px",
-                    fontFamily: '"IBM Plex Mono", monospace',
+                    color: "#a0a0a0",
                   }}
                 />
                 <ReferenceLine
                   x="2026-07"
-                  stroke="#a98529"
+                  stroke="rgba(255,255,255,0.22)"
                   strokeDasharray="4 4"
                   label={{
-                    value: "Receipts End",
+                    value: "Receipts end",
                     position: "insideTopRight",
-                    fill: "#93701d",
+                    fill: "#898989",
                     fontSize: 10,
-                    fontFamily: '"IBM Plex Mono", monospace',
                   }}
                 />
                 <ReferenceLine
                   x={activeMonth}
-                  stroke="#31263b"
-                  strokeWidth={1.5}
+                  stroke="#a78bfa"
+                  strokeWidth={1.25}
+                  strokeDasharray="3 3"
                 />
                 <Bar
                   dataKey="simulated_shortage_qty"
                   name={`Shortage (${summary.unit})`}
-                  fill="#b43c57"
-                  fillOpacity={0.34}
-                  radius={[1, 1, 0, 0]}
-                  maxBarSize={12}
+                  fill="#fb7185"
+                  fillOpacity={0.38}
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={10}
                 />
                 <Area
                   type="monotone"
                   dataKey="actual_idle_stock"
-                  name={`Actual Idle (${summary.unit})`}
-                  stroke="#a98529"
-                  fill="#a98529"
-                  fillOpacity={0.11}
-                  strokeWidth={2}
+                  name={`Actual idle (${summary.unit})`}
+                  stroke="#fbbf24"
+                  fill="url(#hp-actual-idle-grad)"
+                  strokeWidth={1.75}
                   dot={false}
                 />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="simulated_idle_stock"
-                  name={`Simulated Plan (${summary.unit})`}
-                  stroke="#2c7a62"
-                  strokeWidth={2.3}
+                  name={`Simulated plan (${summary.unit})`}
+                  stroke="#5eead4"
+                  fill="url(#hp-sim-idle-grad)"
+                  strokeWidth={2}
                   dot={(dotProps) => {
                     const pt = dotProps.payload as
                       | PlannerMonthlyPoint
@@ -327,14 +347,19 @@ export default function IdleStockChart({
                         key={`shortage-${dotProps.index}`}
                         cx={dotProps.cx}
                         cy={dotProps.cy}
-                        r={3.5}
-                        fill="#b43c57"
-                        stroke="#ffffff"
+                        r={3.75}
+                        fill="#fb7185"
+                        stroke="#1a1a1a"
                         strokeWidth={1.5}
                       />
                     );
                   }}
-                  activeDot={{ r: 5, fill: "#2c7a62" }}
+                  activeDot={{
+                    r: 4.5,
+                    fill: "#5eead4",
+                    stroke: "#1a1a1a",
+                    strokeWidth: 1.5,
+                  }}
                 />
               </ComposedChart>
             ) : (
@@ -347,27 +372,23 @@ export default function IdleStockChart({
                   }
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e9e5e8" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.06)"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="month"
-                  tick={{
-                    fontSize: 11,
-                    fill: "#89828d",
-                    fontFamily: '"IBM Plex Mono", monospace',
-                  }}
-                  axisLine={{ stroke: "#dbd7da" }}
+                  tick={{ fontSize: 11, fill: "#898989" }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
                   tickLine={false}
                   interval={3}
                 />
                 <YAxis
-                  tick={{
-                    fontSize: 11,
-                    fill: "#89828d",
-                    fontFamily: '"IBM Plex Mono", monospace',
-                  }}
+                  tick={{ fontSize: 11, fill: "#898989" }}
                   axisLine={false}
                   tickLine={false}
-                  width={56}
+                  width={54}
                   tickFormatter={(v: number) =>
                     summary.unit === "MT"
                       ? `${v.toFixed(1)}`
@@ -376,40 +397,51 @@ export default function IdleStockChart({
                       : `${v}`
                   }
                 />
-                <Tooltip content={<ChartTooltip unit={summary.unit} />} />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  content={<ChartTooltip unit={summary.unit} />}
+                />
                 <Legend
                   wrapperStyle={{
                     fontSize: "11px",
                     paddingTop: "10px",
-                    fontFamily: '"IBM Plex Mono", monospace',
+                    color: "#a0a0a0",
                   }}
                 />
                 <ReferenceLine
                   x={activeMonth}
-                  stroke="#31263b"
-                  strokeWidth={1.5}
+                  stroke="#a78bfa"
+                  strokeWidth={1.25}
+                  strokeDasharray="3 3"
                 />
                 <Bar
                   dataKey="actual_receipts"
-                  name={`Actual Receipts (${summary.unit})`}
-                  fill="#a98529"
-                  fillOpacity={0.45}
+                  name={`Actual receipts (${summary.unit})`}
+                  fill="rgba(255,255,255,0.18)"
+                  radius={[3, 3, 0, 0]}
                   maxBarSize={12}
                 />
                 <Bar
                   dataKey="simulated_receipts"
-                  name={`Simulated Receipts (${summary.unit})`}
-                  fill="#7c6396"
-                  fillOpacity={0.78}
+                  name={`Simulated receipts (${summary.unit})`}
+                  fill="#a78bfa"
+                  fillOpacity={0.85}
+                  radius={[3, 3, 0, 0]}
                   maxBarSize={12}
                 />
                 <Line
                   type="monotone"
                   dataKey="actual_consumption"
-                  name={`Site Consumption (${summary.unit})`}
-                  stroke="#31263b"
-                  strokeWidth={2.2}
+                  name={`Site consumption (${summary.unit})`}
+                  stroke="#5eead4"
+                  strokeWidth={2}
                   dot={false}
+                  activeDot={{
+                    r: 4.5,
+                    fill: "#5eead4",
+                    stroke: "#1a1a1a",
+                    strokeWidth: 1.5,
+                  }}
                 />
               </ComposedChart>
             )}
@@ -417,7 +449,7 @@ export default function IdleStockChart({
         </div>
       </div>
 
-      {/* Docked Charcoal Replay Strip */}
+      {/* Docked Timeline Scrubber */}
       {footerSlot}
     </section>
   );

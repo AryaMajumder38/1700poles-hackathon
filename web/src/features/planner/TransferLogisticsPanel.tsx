@@ -3,13 +3,9 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { ItemUnit } from "@/types/lumino";
-import { KanpurNetworkDiagram } from "./HexPrimitives";
+import { KanpurNetworkDiagram, QtyText } from "./HexPrimitives";
 import type { TransferRouteRow } from "./plannerTypes";
-import {
-  formatPlainNumber,
-  formatQty,
-  shortGodownName,
-} from "./plannerTypes";
+import { formatPlainNumber, shortGodownName } from "./plannerTypes";
 
 interface TransferLogisticsPanelProps {
   monthRoutes: TransferRouteRow[];
@@ -39,43 +35,41 @@ export default function TransferLogisticsPanel({
     <section
       id="planner-lp-logistics"
       aria-label="Inter-Godown Transfer Logistics Panel"
-      className="space-y-6 border-t border-[#dbd7da] pt-8"
+      className="overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#1a1a1a]"
     >
-      {/* Feature Split: Copy + Compact Metrics on Left, Line Diagram on Right */}
-      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+      {/* Top Split: Metrics & Scope on Left, Spectral Corridor Network on Right */}
+      <div className="grid grid-cols-1 items-start gap-6 p-6 lg:grid-cols-12">
         <div className="space-y-4 lg:col-span-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="hp-ochre-tag">STAGE A · MIN-COST FLOW LP</span>
-            {scopedGodown && (
-              <span className="hp-mono inline-flex items-center border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-sky-800">
-                Site-Scoped · {shortGodownName(scopedGodown)}
-              </span>
-            )}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-[17px] font-medium text-[#e7e7e7]">
+                Inter-godown transfers
+              </h3>
+              {scopedGodown && (
+                <span className="rounded-full border border-white/[0.08] bg-white/[0.05] px-2.5 py-0.5 text-xs text-[#a0a0a0]">
+                  {shortGodownName(scopedGodown)}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-[#a0a0a0]">
+              {scopedGodown
+                ? `LP routes touching ${shortGodownName(
+                    scopedGodown
+                  )} before ${leadTimeDays}-day vendor orders.`
+                : `Min-distance yard rebalancing (1–2d road transit) before ${leadTimeDays}-day vendor orders.`}
+            </p>
           </div>
-          <h3 className="hp-heading text-2xl font-extrabold leading-[1.2] text-[#14141c]">
-            Rebalance local yards{" "}
-            <span className="hp-italic text-[29px] font-light text-[#31263b]">
-              before ordering
-            </span>
-          </h3>
-          <p className="text-sm font-light leading-[1.6] text-[#43394c]">
-            {scopedGodown
-              ? `Showing LP transfer routes entering or leaving ${shortGodownName(
-                  scopedGodown
-                )} (45–150 km; 1–2 day road transit) before placing ${leadTimeDays}-day vendor orders.`
-              : `Solves minimum-distance transfers across the 6 Kanpur district godowns (45–150 km; 1–2 day road transit) with donor horizon protection before placing ${leadTimeDays}-day vendor orders.`}
-          </p>
 
-          {/* Compact Scope Switcher */}
-          <div className="inline-flex border border-[#dbd7da] bg-[#fffcfc]">
+          {/* Pill Segmented Scope Switcher */}
+          <div className="inline-flex rounded-full border border-white/[0.06] bg-white/[0.05] p-1">
             <button
               type="button"
               aria-pressed={scope === "month"}
               onClick={() => setScope("month")}
-              className={`hp-mono px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
+              className={`rounded-full px-3.5 py-1.5 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer tabular-nums ${
                 scope === "month"
-                  ? "bg-[#31263b] text-[#fffcfc]"
-                  : "text-[#43394c] hover:bg-[#e9e5e8]"
+                  ? "bg-white font-medium text-black shadow-sm"
+                  : "text-[#a0a0a0] hover:text-white"
               }`}
             >
               {activeMonth} ({monthRoutes.length})
@@ -84,65 +78,83 @@ export default function TransferLogisticsPanel({
               type="button"
               aria-pressed={scope === "all"}
               onClick={() => setScope("all")}
-              className={`hp-mono border-l border-[#dbd7da] px-3.5 py-2 text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer ${
+              className={`rounded-full px-3.5 py-1.5 text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer tabular-nums ${
                 scope === "all"
-                  ? "bg-[#31263b] text-[#fffcfc]"
-                  : "text-[#43394c] hover:bg-[#e9e5e8]"
+                  ? "bg-white font-medium text-black shadow-sm"
+                  : "text-[#a0a0a0] hover:text-white"
               }`}
             >
-              All 44 Months ({allItemRoutes.length})
+              All 44 months ({allItemRoutes.length})
             </button>
           </div>
 
-          {/* Quiet Inline Metric Row (no extra boxed cards) */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-[#e9e5e8] pt-4 text-xs tabular-nums sm:grid-cols-4 lg:grid-cols-2">
+          {/* Inline Metric Grid */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-white/[0.06] pt-4 sm:grid-cols-4 lg:grid-cols-2">
             <div>
-              <span className="hp-mono block text-[10px] uppercase tracking-[0.07em] text-[#89828d]">
-                Active Routes
+              <span className="block text-xs font-normal text-[#898989]">
+                Active routes
               </span>
-              <span className="hp-heading mt-0.5 block text-lg font-bold text-[#14141c]">
+              <span className="mt-1 block font-serif text-[26px] font-normal leading-none tracking-[-0.02em] text-white tabular-nums">
                 {displayed.length}
               </span>
             </div>
             <div>
-              <span className="hp-mono block text-[10px] uppercase tracking-[0.07em] text-[#89828d]">
-                Volume Shifted
+              <span className="block text-xs font-normal text-[#898989]">
+                Volume shifted
               </span>
-              <span className="hp-heading mt-0.5 block text-lg font-bold text-[#31263b]">
-                {formatQty(totalQty, unit)}
-              </span>
-            </div>
-            <div>
-              <span className="hp-mono block text-[10px] uppercase tracking-[0.07em] text-[#89828d]">
-                Road Distance
-              </span>
-              <span className="hp-heading mt-0.5 block text-lg font-bold text-[#14141c]">
-                {formatPlainNumber(totalDistKm)} km
+              <span className="mt-1 block font-serif text-[26px] font-normal leading-none tracking-[-0.02em] text-white">
+                <QtyText value={totalQty} unit={unit} dashZero />
               </span>
             </div>
             <div>
-              <span className="hp-mono block text-[10px] uppercase tracking-[0.07em] text-[#2c7a62]">
-                Est. Haul Saved
+              <span className="block text-xs font-normal text-[#898989]">
+                Road distance
               </span>
-              <span className="hp-heading mt-0.5 block text-lg font-bold text-[#2c7a62]">
-                {formatPlainNumber(totalKmSaved)} km
+              <span className="mt-1 block font-serif text-[26px] font-normal leading-none tracking-[-0.02em] text-white tabular-nums">
+                {totalDistKm > 0 ? (
+                  <>
+                    {formatPlainNumber(totalDistKm)}
+                    <span className="ml-1 font-sans text-xs font-normal text-[#898989]">
+                      km
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-white/20">—</span>
+                )}
+              </span>
+            </div>
+            <div>
+              <span className="block text-xs font-normal text-[#898989]">
+                Est. haul saved
+              </span>
+              <span className="mt-1 block font-serif text-[26px] font-normal leading-none tracking-[-0.02em] text-emerald-400 tabular-nums">
+                {totalKmSaved > 0 ? (
+                  <>
+                    {formatPlainNumber(totalKmSaved)}
+                    <span className="ml-1 font-sans text-xs font-normal text-[#898989]">
+                      km
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-white/20">—</span>
+                )}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right: Technical Line Illustration */}
+        {/* Right: Spectral Isometric Corridor Graph */}
         <div className="lg:col-span-7">
           <KanpurNetworkDiagram routes={displayed} />
         </div>
       </div>
 
-      {/* Clean Open Hairline Routes Table */}
-      {displayed.length === 0 ? (
-        <div className="border-y border-dashed border-[#dbd7da] bg-[#fcf8f8] px-6 py-8 text-center">
-          <p className="text-sm font-light text-[#43394c]">
+      {/* Routes Table or Empty State */}
+      <div className="border-t border-white/[0.06]">
+        {displayed.length === 0 ? (
+          <div className="px-6 py-8 text-center text-sm text-[#a0a0a0]">
             No inter-godown transfers triggered in{" "}
-            <span className="hp-mono font-medium text-[#14141c]">
+            <span className="font-medium text-white tabular-nums">
               {activeMonth}
             </span>
             .{" "}
@@ -150,74 +162,79 @@ export default function TransferLogisticsPanel({
               <button
                 type="button"
                 onClick={() => setScope("all")}
-                className="font-medium text-[#31263b] underline decoration-[#cda0a5] underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#31263b] cursor-pointer"
+                className="font-medium text-white underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 cursor-pointer"
               >
-                View all {allItemRoutes.length} LP routes across 44 months
+                View all {allItemRoutes.length} routes across 44 months
               </button>
             )}
-          </p>
-        </div>
-      ) : (
-        <div className="max-h-72 overflow-auto border-y border-[#dbd7da] bg-[#fffcfc]">
-          <table className="min-w-full border-collapse text-xs">
-            <thead className="sticky top-0 border-b border-[#dbd7da] bg-[#fcf8f8] text-[#43394c]">
-              <tr>
-                <th className="hp-mono px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-                  Month
-                </th>
-                <th className="hp-mono px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.08em]">
-                  Route (Donor → Receiver)
-                </th>
-                <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                  Quantity
-                </th>
-                <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                  Distance
-                </th>
-                <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                  Transit
-                </th>
-                <th className="hp-mono px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em]">
-                  km Saved
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e9e5e8]">
-              {displayed.map((r, idx) => (
-                <tr
-                  key={`${r.month}-${r.from_godown}-${r.to_godown}-${idx}`}
-                  className="transition-colors hover:bg-[#fcf8f8]"
-                >
-                  <td className="hp-mono whitespace-nowrap px-4 py-2.5 text-[#43394c]">
-                    {r.month}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5">
-                    <span className="inline-flex items-center gap-2 font-medium text-[#14141c]">
-                      <span>{shortGodownName(r.from_godown)}</span>
-                      <ArrowRight className="h-3.5 w-3.5 text-[#afa9b1]" />
-                      <span className="text-[#2c7a62]">
-                        {shortGodownName(r.to_godown)}
-                      </span>
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right font-medium tabular-nums text-[#14141c]">
-                    {formatQty(r.qty, r.unit)}
-                  </td>
-                  <td className="hp-mono whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-[#43394c]">
-                    {r.distance_km} km
-                  </td>
-                  <td className="hp-mono whitespace-nowrap px-4 py-2.5 text-right text-[#43394c]">
-                    {r.transit_days}d
-                  </td>
-                  <td className="hp-mono whitespace-nowrap px-4 py-2.5 text-right font-semibold tabular-nums text-[#2c7a62]">
-                    +{r.km_saved} km
-                  </td>
+          </div>
+        ) : (
+          <div className="max-h-72 overflow-auto">
+            <table className="min-w-full border-collapse">
+              <thead className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#161616] text-xs font-normal text-[#898989]">
+                <tr>
+                  <th className="px-6 py-2.5 text-left font-normal">Month</th>
+                  <th className="px-4 py-2.5 text-left font-normal">
+                    Route (donor → receiver)
+                  </th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Quantity
+                  </th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Distance
+                  </th>
+                  <th className="px-4 py-2.5 text-right font-normal">
+                    Transit
+                  </th>
+                  <th className="px-6 py-2.5 text-right font-normal">
+                    Haul saved
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-white/[0.05] text-sm">
+                {displayed.map((r, idx) => (
+                  <tr
+                    key={`${r.month}-${r.from_godown}-${r.to_godown}-${idx}`}
+                    className="transition-colors duration-150 hover:bg-white/[0.03]"
+                  >
+                    <td className="whitespace-nowrap px-6 py-2.5 text-[#a0a0a0] tabular-nums">
+                      {r.month}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      <span className="inline-flex items-center gap-2 font-medium text-[#e7e7e7]">
+                        <span>{shortGodownName(r.from_godown)}</span>
+                        <ArrowRight
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 text-[#898989]"
+                        />
+                        <span className="text-emerald-400">
+                          {shortGodownName(r.to_godown)}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-medium">
+                      <QtyText value={r.qty} unit={r.unit} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-[#a0a0a0] tabular-nums">
+                      {r.distance_km}
+                      <span className="ml-1 text-xs text-[#898989]">km</span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-[#a0a0a0] tabular-nums">
+                      {r.transit_days}d
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-2.5 text-right font-medium text-emerald-400 tabular-nums">
+                      +{r.km_saved}
+                      <span className="ml-1 text-xs font-normal text-[#898989]">
+                        km
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
